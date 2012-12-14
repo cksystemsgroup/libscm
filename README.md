@@ -3,13 +3,13 @@ libscm
 
 Self-collecting mutators for the C programming language
  * Copyright (c) 2010 Martin Aigner, Andreas Haas
- * http://cs.uni-salzburg.at/~maigner
- * http://cs.uni-salzburg.at/~ahaas
+ * <http://cs.uni-salzburg.at/~maigner>
+ * <http://cs.uni-salzburg.at/~ahaas>
  *
  * University Salzburg, www.uni-salzburg.at
  * Department of Computer Science, cs.uni-salzburg.at
  *
- * http://tiptoe.cs.uni-salzburg.at/short-term-memory/
+ * <http://tiptoe.cs.uni-salzburg.at/short-term-memory/>
 
 
 Short-term Memory for Self-collecting Mutators
@@ -51,7 +51,7 @@ How to build libscm
 Additional Information
 -----------------------
 Take a look at our project webpage at
-http://tiptoe.cs.uni-salzburg.at/short-term-memory/
+<http://tiptoe.cs.uni-salzburg.at/short-term-memory/>
 
 Detailed information regarding the implementation can be found here: 
-http://cs.uni-salzburg.at/~maigner/publications/masters\_thesis.pdf
+<http://cs.uni-salzburg.at/~maigner/publications/masters_thesis.pdf>
