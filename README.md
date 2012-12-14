@@ -52,3 +52,6 @@ Additional Information
 -----------------------
 Take a look at our project webpage at
 http://tiptoe.cs.uni-salzburg.at/short-term-memory/
+
+Detailed information regarding the implementation can be found here: 
+http://cs.uni-salzburg.at/~maigner/publications/masters\_thesis.pdf
