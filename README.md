@@ -1,7 +1,7 @@
 libscm
 ======
 
-Self-collecting mutators for the C programming language/*
+Self-collecting mutators for the C programming language
  * Copyright (c) 2010 Martin Aigner, Andreas Haas
  * http://cs.uni-salzburg.at/~maigner
  * http://cs.uni-salzburg.at/~ahaas
@@ -10,23 +10,6 @@ Self-collecting mutators for the C programming language/*
  * Department of Computer Science, cs.uni-salzburg.at
  *
  * http://tiptoe.cs.uni-salzburg.at/short-term-memory/
- */
-
-/*
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- */
 
 
 Short-term Memory for Self-collecting Mutators
@@ -61,7 +44,7 @@ How to build libscm
   subdirectory
 * take a look at the examples subdirectory (c files and Makefile)
   to find out how to build a program using libscm.
-* You can run the examples with the provided run-*.sh scripts that set up the
+* You can run the examples with the provided run-\*.sh scripts that set up the
   environment.
 
 
