@@ -1,0 +1,93 @@
+Copyright (c) 2011 Martin Aigner, Andreas Haas, Stephanie Stroka
+http://cs.uni-salzburg.at/~maigner
+http://cs.uni-salzburg.at/~ahaas
+http://cs.uni-salzburg.at/~sstroka
+
+University Salzburg, www.uni-salzburg.at
+Department of Computer Science, cs.uni-salzburg.at
+
+http://tiptoe.cs.uni-salzburg.at/short-term-memory/
+
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+
+Short-term Memory for Self-collecting Mutators
+-----------------------------------------------
+We propose a new memory model called short-term memory for 
+managing objects on the heap. In contrast to the traditional per- 
+sistent memory model for heap management, objects in short-term 
+memory expire after a finite amount of time, which makes deallo- 
+cation unnecessary. Instead, expiration of objects may be extended, 
+if necessary, by refreshing. We have developed a concurrent, in- 
+cremental, and non-moving implementation of short-term memory 
+for explicit refreshing called self-collecting mutators that is based 
+on programmer-controlled time and integrated into state-of-the-art 
+runtimes of three programming languages: C, Java, and Go. All 
+memory management operations run in constant time without ac- 
+quiring any locks modulo the underlying allocators. Our implemen- 
+tation does not require any additional heap management threads, 
+hence the name. Expired objects may be collected anywhere be- 
+tween one at a time for maximal incrementality and all at once for 
+maximal throughput and minimal memory consumption. The inte- 
+grated systems are heap management hybrids with persistent mem- 
+ory as default and short-term memory as option. Our approach is 
+fully backwards compatible. Legacy code runs without any modi- 
+fications with negligible runtime overhead and constant per-object 
+space overhead. Legacy code can be modified to take advantage of 
+short-term memory by having some but not all objects allocated in 
+short-term memory and managed by explicit refreshing. We study 
+single- and multi-threaded use cases in all three languages macro- 
+benchmarking C and Java and micro-benchmarking Go. Our results 
+show that using short-term memory (1) simplifies heap manage- 
+ment in a state-of-the-art H.264 encoder written in C without ad- 
+ditional time and minor space overhead, and (2) improves, at the 
+expense of safety, memory management throughput, latency, and 
+space consumption by reducing the number of garbage collection 
+runs, often even to zero, for a number of Java and Go programs. 
+More information can be found at 
+http://tiptoe.cs.uni-salzburg.at/short-term-memory/
+
+libscm is the C library for short-term memory. It 
+(1) provides short-term memory management for individual memory 
+    requests (memory objects), 
+(2) introduces short-term memory regions, which cluster multiple 
+    memory requests into regions to prevent memory fragmentation 
+    and provide constant time deallocation of multiple expired 
+    objects, and 
+(3) supports the use of multiple software clocks to enable
+    flexible time management.
+
+
+
+How to build libscm
+--------------------
+* Use a recent version of gcc. libscm is known to work with gcc 4.4.3
+  on Linux x86 and x86_64
+* run make to build the shared library
+* the library (libscm.so) and the public header files reside in the dist 
+  subdirectory
+* run the unit tests located in the test subdirectory. To run the unit
+  tests you have to compile libscm with the -DSCM_TEST flag.
+* take a look at the examples subdirectory (c files and Makefile)
+  to find out how to build a program using libscm.
+* You can run the unit tests and examples with the provided run-*.sh
+  scripts that set up the environment.
+
+
+Additional Information
+-----------------------
+Take a look at our project webpage at
+http://tiptoe.cs.uni-salzburg.at/short-term-memory/

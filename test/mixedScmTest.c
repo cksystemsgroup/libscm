@@ -23,30 +23,41 @@
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
+#include <stdlib.h>
+#include <stdio.h>
+#include "stm.h"
+#include "meter.h"
 
-#ifndef _STM_DEBUG_H
-#define	_STM_DEBUG_H
+#define LOOPRUNS 30
+#define MEMSIZE1 512
+#define MEMSIZE2 256
 
-#ifndef SCM_FINALZIER_TABLE_SIZE
-#define SCM_FINALZIER_TABLE_SIZE 32
-#endif /*SCM_FINALZIER_TABLE_SIZE*/
 
-/** scm_register_finalizer registers a finalizer function in
- * libscm. A function id is returned for later use. (see scm_set_finalizer)
- *
- * It is up to the user to design the scm_finalizer function. If
- * scm_finalizer returns non-zero, the object will not be deallocated.
- * libscm provides the pointer to the object as parameter of scm_finalizer.
- */
-int scm_register_finalizer(int(*scm_finalizer)(void*));
+int main(int argc, char** argv) {
 
-/**
- * scm_set_finalizer binds a finalizer function id
- * (returned by scm_register_finalizer) to an object (ptr)
- * (scm_finalizer) to an object (ptr).
- * This function will be executed just before an expired object is
- * deallocated.
- */
-void scm_set_finalizer(void *ptr, int scm_finalizer_id);
+	int i, j;
+	int region_array[10];
 
-#endif	/* _STM_DEBUG_H */
+	for(i=0; i<10; i++) {
+		region_array[i] = scm_create_region();
+		if(region_array[i] != -1) {
+			void* ptr = scm_malloc_in_region(MEMSIZE2, region_array[i]);
+#ifdef SCM_PRINTMEM
+			inc_needed_mem(MEMSIZE2);
+#endif
+			scm_refresh(ptr, 0);
+		}
+	}
+	void* ptr1 = scm_malloc(MEMSIZE1);
+	scm_refresh(ptr1, 0);
+
+	scm_tick();
+
+#ifdef SCM_PRINTMEM
+	inc_not_needed_mem(MEMSIZE2*10);
+	print_memory_consumption();
+#endif
+
+	printf("success\n");
+
+}

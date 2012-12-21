@@ -1,7 +1,8 @@
 /*
- * Copyright (c) 2010 Martin Aigner, Andreas Haas
+ * Copyright (c) 2010 Martin Aigner, Andreas Haas, Stephanie Stroka
  * http://cs.uni-salzburg.at/~maigner
  * http://cs.uni-salzburg.at/~ahaas
+ * http://cs.uni-salzburg.at/~sstroka
  *
  * University Salzburg, www.uni-salzburg.at
  * Department of Computer Science, cs.uni-salzburg.at
@@ -50,7 +51,6 @@ void scm_set_finalizer(void *ptr, int scm_finalizer_id) {
     o->finalizer_index = scm_finalizer_id;
 }
 
-
 int run_finalizer(object_header_t *o) {
 
     //INVARIANT: object o is already expired
@@ -65,4 +65,3 @@ int run_finalizer(object_header_t *o) {
     //run finalizer and return the result of it
     return (*finalizer)(ptr);
 }
-

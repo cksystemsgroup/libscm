@@ -1,7 +1,8 @@
 /*
- * Copyright (c) 2010 Martin Aigner, Andreas Haas
+ * Copyright (c) 2010 Martin Aigner, Andreas Haas, Stephanie Stroka
  * http://cs.uni-salzburg.at/~maigner
  * http://cs.uni-salzburg.at/~ahaas
+ * http://cs.uni-salzburg.at/~sstroka
  *
  * University Salzburg, www.uni-salzburg.at
  * Department of Computer Science, cs.uni-salzburg.at

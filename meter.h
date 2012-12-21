@@ -1,7 +1,8 @@
 /*
- * Copyright (c) 2010 Martin Aigner, Andreas Haas
+ * Copyright (c) 2010 Martin Aigner, Andreas Haas, Stephanie Stroka
  * http://cs.uni-salzburg.at/~maigner
  * http://cs.uni-salzburg.at/~ahaas
+ * http://cs.uni-salzburg.at/~sstroka
  *
  * University Salzburg, www.uni-salzburg.at
  * Department of Computer Science, cs.uni-salzburg.at
@@ -26,18 +27,45 @@
 #ifndef _METER_H
 #define	_METER_H
 
-//#ifdef SCM_CALCOVERHEAD
-    void inc_overhead(long inc) __attribute__ ((visibility("hidden")));
-    void dec_overhead(long inc) __attribute__ ((visibility("hidden")));
-//#endif
+#ifdef SCM_PRINTOVERHEAD
+void inc_overhead(long inc) __attribute__ ((visibility("hidden")));
+void dec_overhead(long inc) __attribute__ ((visibility("hidden")));
+#endif
 
-//#ifdef SCM_CALCMEM
+#ifdef SCM_PRINTMEM
 
-    void inc_freed_mem(long inc) __attribute__ ((visibility("hidden")));
-    void inc_allocated_mem(long inc) __attribute__ ((visibility("hidden")));
-    void enable_mem_meter(void) __attribute__ ((visibility("hidden")));
-    void disable_mem_meter(void) __attribute__ ((visibility("hidden")));
-    void print_memory_consumption(void) __attribute__ ((visibility("hidden")));
-//#endif
+/**
+ * Keep track of the pooled/unpooled memory
+ */
+void dec_pooled_mem(int inc);
+void inc_pooled_mem(int inc);
+
+/**
+ * Keeps track of the freed memory
+ */
+void inc_freed_mem(int inc);
+/**
+ * Keeps track of the allocated memory
+ */
+void inc_allocated_mem(int inc);
+
+/**
+ * Keeps track of the not needed memory
+ */
+void inc_not_needed_mem(int inc);
+/**
+ * Keeps track of the needed memory
+ */
+void inc_needed_mem(int inc);
+
+void enable_mem_meter(void) __attribute__ ((visibility("hidden")));
+void disable_mem_meter(void) __attribute__ ((visibility("hidden")));
+
+/**
+ * prints the memory consumption for needed and allocated memory
+ */
+void print_memory_consumption(void);
+#endif
 
 #endif	/* _METER_H */
+
