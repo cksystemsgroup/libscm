@@ -1,4 +1,3 @@
-
 CC=gcc
 OBJECTDIR=build
 DISTDIR=dist
