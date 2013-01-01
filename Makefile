@@ -52,11 +52,9 @@ $(OBJECTDIR)/finalizer.o: $(SOURCEFILES)
 	mkdir -p build
 	$(CC) -c $(CFLAGS) -o $(OBJECTDIR)/finalizer.o finalizer.c
 
-
 $(OBJECTDIR)/scm-desc.o: $(SOURCEFILES)
 	mkdir -p build
 	$(CC) -c $(CFLAGS) -o $(OBJECTDIR)/scm-desc.o scm-desc.c
-
 
 libscm: $(OBJECTFILES)
 	mkdir -p dist
@@ -67,4 +65,3 @@ libscm: $(OBJECTFILES)
 clean:
 	rm -rf dist
 	rm -rf build
-	

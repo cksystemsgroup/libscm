@@ -12,7 +12,7 @@
 #include "meter.h"
 
 //#ifdef SCM_CALCMEM
-#include <malloc.h>
+//#include <malloc.h>
 //#endif //SCM_CALCMEM
 
 //#ifdef SCM_CALCOVERHEAD
@@ -66,12 +66,12 @@ void print_memory_consumption() {
         start_time = usec;
     }
 
-    struct mallinfo info = mallinfo();
+    //struct mallinfo info = mallinfo();
 
     if (mem_meter_enabled != 0) {
         printf("memusage:\t%lu\t%ld\n", usec - start_time, alloc_mem - freed_mem);
         printf("memoverhead:\t%lu\t%lu\n", usec - start_time, mem_overhead);
-        printf("mallinfo:\t%lu\t%d\n", usec - start_time, info.uordblks);
+        //printf("mallinfo:\t%lu\t%d\n", usec - start_time, info.uordblks);
     }
 }
 
