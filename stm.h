@@ -120,16 +120,16 @@ void scm_global_refresh(void *ptr, unsigned int extension);
 void scm_refresh(void *ptr, unsigned int extension);
 
 /*
- * 
- * 
+ * scm_register_thread initializes self-collecting mutators for the calling 
+ * thread. This function needs to be invoked before using refresh and tick
+ * operations.
  */
 void scm_register_thread(void);
 
 /*
  * scm_unregister_thread may be called just before a thread terminates.
  * The thread's data structures are preserved for a new thread to join
- * the short term memory system. Registration of a thread is done
- * automatically when a thread calls *_tick or *_refresh the first time.
+ * the short term memory system.
  */
 void scm_unregister_thread(void);
 

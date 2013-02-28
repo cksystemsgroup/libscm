@@ -37,7 +37,7 @@ OBJECTFILES= \
 
 LDLIBSOPTIONS=-lpthread
 
-CFLAGS=$(SCM_OPTION) -O3 -Wall -fPIC
+CFLAGS=$(SCM_OPTION) -Wall -fPIC -g
 
 all: libscm
 

@@ -1,4 +1,4 @@
-#include <stdlib.h>
+//#include <stdlib.h>
 #include "stm.h"
 
 void *pointer2 = NULL;
@@ -21,6 +21,8 @@ void use_some_memory() {
 }
 
 int main(int argc, char** argv) {
+
+	scm_register_thread();
 	
 	int i;
 	
@@ -33,3 +35,4 @@ int main(int argc, char** argv) {
 	
 	return 0;
 }
+
