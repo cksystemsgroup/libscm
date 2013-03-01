@@ -9,18 +9,16 @@
 #include "arch.h"
 #include "scm-desc.h"
 
-
-//finalizer table contains 100 function pointers;
-static int (*finalizer_table[SCM_FINALZIER_TABLE_SIZE])(void*);
+//finalizer table contains function pointers;
+static int (*finalizer_table[SCM_FINALIZER_TABLE_SIZE])(void*);
 
 //bump pointer on the finalizer table
 static int finalizer_index = 0;
 
 int scm_register_finalizer(int(*scm_finalizer)(void*)) {
-
     int index = atomic_int_exchange_and_add(&finalizer_index, 1);
 
-    if (index >= SCM_FINALZIER_TABLE_SIZE) return -1; //error, table full
+    if (index >= SCM_FINALIZER_TABLE_SIZE) return -1; //error, table full
 
     finalizer_table[index] = scm_finalizer;
     return index;
@@ -34,7 +32,6 @@ void scm_set_finalizer(void *ptr, int scm_finalizer_id) {
 
 
 int run_finalizer(object_header_t *o) {
-
     //INVARIANT: object o is already expired
 
     if (o->finalizer_index == -1) return 0; //object has no finalizer

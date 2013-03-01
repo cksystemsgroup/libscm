@@ -7,57 +7,94 @@
 
 #include <stdio.h>
 #include <sys/time.h>
+
 #include "stm.h"
-#include "stm-debug.h"
 #include "meter.h"
 
-//#ifdef SCM_CALCMEM
+#ifdef SCM_PRINTMEM
 #include <malloc.h>
-//#endif //SCM_CALCMEM
 
-//#ifdef SCM_CALCOVERHEAD
-long mem_overhead __attribute__ ((visibility("hidden"))) = 0 ;
+#ifdef SCM_PRINTOVERHEAD
+static long mem_overhead = 0 ;
 
 void inc_overhead(long inc) {
     //mem_overhead += inc;
     __sync_add_and_fetch(&mem_overhead, inc);
-    
 }
+
 void dec_overhead(long inc) {
     //mem_overhead -= inc;
     __sync_sub_and_fetch(&mem_overhead, inc);
 }
-//#endif
+#endif
 
-//#ifdef SCM_CALCMEM
-static int mem_meter_enabled = 1;
-static long start_time = 0;
-void enable_mem_meter() {
-    mem_meter_enabled = 1;
-}
-void disable_mem_meter() {
-    mem_meter_enabled = 0;
-}
-
-static long freed_mem = 0;
 static long alloc_mem = 0;
-static long num_freed = 0;
 static long num_alloc = 0;
 
-void inc_freed_mem(long inc) {
-    //freed_mem += inc;
-    __sync_add_and_fetch(&freed_mem, inc);
-    __sync_add_and_fetch(&num_freed, 1);
-}
-void inc_allocated_mem(long inc) {
-    //used_mem += inc;
+/**
+ * Keeps track of the allocated memory
+ */
+void inc_allocated_mem(int inc) {
+    //alloc_mem += inc;
     __sync_add_and_fetch(&alloc_mem, inc);
     __sync_add_and_fetch(&num_alloc, 1);
 }
 
-void print_memory_consumption() {
+static long freed_mem = 0;
+static long num_freed = 0;
 
+/**
+ * Keeps track of the freed memory
+ */
+void inc_freed_mem(int inc) {
+    //freed_mem += inc;
+    __sync_add_and_fetch(&freed_mem, inc);
+    __sync_add_and_fetch(&num_freed, 1);
+}
+
+static long pooled_mem = 0;
+
+/**
+ * Keep track of the pooled memory
+ */
+void inc_pooled_mem(long inc) {
+    //pooled_mem += inc;
+    __sync_add_and_fetch(&pooled_mem, inc);
+}
+
+void dec_pooled_mem(long inc) {
+    //pooled_mem -= inc;
+    __sync_sub_and_fetch(&pooled_mem, inc);
+}
+
+static long needed_mem = 0;
+
+/**
+ * Keeps track of the needed memory
+ */
+void inc_needed_mem(long inc) {
+    //needed_mem += inc;
+    __sync_add_and_fetch(&needed_mem, inc);
+}
+
+static long not_needed_mem = 0;
+
+/**
+ * Keeps track of the not-needed memory
+ */
+void inc_not_needed_mem(long inc) {
+    //not_needed_mem += inc;
+    __sync_add_and_fetch(&not_needed_mem, inc);
+}
+
+static long start_time = 0;
+
+/**
+ * prints the memory consumption for needed and allocated memory
+ */
+void print_memory_consumption() {
     struct timeval t;
+
     gettimeofday(&t, NULL);
 
     long usec = t.tv_sec * 1000000 + t.tv_usec;
@@ -69,17 +106,19 @@ void print_memory_consumption() {
     struct mallinfo info = mallinfo();
 
     if (mem_meter_enabled != 0) {
-        printf("memusage:\t%lu\t%ld\n", usec - start_time, alloc_mem - freed_mem);
+        long used = alloc_mem - pooled_mem;
+        long needed = needed_mem - not_needed_mem;
+
+        if (needed < 0)
+            needed = 0;
+
+        printf("memusage:\t%lu\t%d\t%d\t%d\t%d\n", usec - start_time, alloc_mem - freed_mem, pooled_mem, used, needed);
+
+#ifdef SCM_PRINTOVERHEAD
         printf("memoverhead:\t%lu\t%lu\n", usec - start_time, mem_overhead);
+#endif //SCM_PRINTOVERHEAD
+
         printf("mallinfo:\t%lu\t%d\n", usec - start_time, info.uordblks);
     }
 }
-
-void scm_get_mem_info(struct scm_mem_info *info) {
-	info->allocated = alloc_mem;
-	info->freed = freed_mem;
-	info->overhead = mem_overhead;
-        info->num_alloc = num_alloc;
-        info->num_freed = num_freed;
-}
-//#endif //SCM_CALCMEM
+#endif

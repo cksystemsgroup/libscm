@@ -8,18 +8,44 @@
 #ifndef _METER_H
 #define	_METER_H
 
-//#ifdef SCM_CALCOVERHEAD
-    void inc_overhead(long inc) __attribute__ ((visibility("hidden")));
-    void dec_overhead(long inc) __attribute__ ((visibility("hidden")));
-//#endif
+#ifdef SCM_PRINTMEM
 
-//#ifdef SCM_CALCMEM
+#ifdef SCM_PRINTOVERHEAD
+void inc_overhead(long inc) __attribute__((visibility("hidden")));
+void dec_overhead(long inc) __attribute__((visibility("hidden")));
+#endif
 
-    void inc_freed_mem(long inc) __attribute__ ((visibility("hidden")));
-    void inc_allocated_mem(long inc) __attribute__ ((visibility("hidden")));
-    void enable_mem_meter(void) __attribute__ ((visibility("hidden")));
-    void disable_mem_meter(void) __attribute__ ((visibility("hidden")));
-    void print_memory_consumption(void) __attribute__ ((visibility("hidden")));
-//#endif
+/**
+ * Keeps track of the allocated memory
+ */
+void inc_allocated_mem(long inc);
+
+/**
+ * Keeps track of the freed memory
+ */
+void inc_freed_mem(long inc);
+
+/**
+ * Keep track of the pooled/unpooled memory
+ */
+void inc_pooled_mem(long inc);
+void dec_pooled_mem(long inc);
+
+/**
+ * Keeps track of the needed memory
+ */
+void inc_needed_mem(long inc);
+
+/**
+ * Keeps track of the not needed memory
+ */
+void inc_not_needed_mem(long inc);
+
+/**
+ * prints the memory consumption for needed and allocated memory
+ */
+void print_memory_consumption(void);
+#endif
 
 #endif	/* _METER_H */
+
