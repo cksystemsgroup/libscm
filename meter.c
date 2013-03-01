@@ -11,9 +11,9 @@
 #include "stm-debug.h"
 #include "meter.h"
 
-//#ifdef SCM_CALCMEM
-//#include <malloc.h>
-//#endif //SCM_CALCMEM
+#ifdef SCM_CALCMEM
+#include <malloc.h>
+#endif //SCM_CALCMEM
 
 //#ifdef SCM_CALCOVERHEAD
 long mem_overhead __attribute__ ((visibility("hidden"))) = 0 ;
@@ -71,7 +71,7 @@ void print_memory_consumption() {
     if (mem_meter_enabled != 0) {
         printf("memusage:\t%lu\t%ld\n", usec - start_time, alloc_mem - freed_mem);
         printf("memoverhead:\t%lu\t%lu\n", usec - start_time, mem_overhead);
-        //printf("mallinfo:\t%lu\t%d\n", usec - start_time, info.uordblks);
+        printf("mallinfo:\t%lu\t%d\n", usec - start_time, info.uordblks);
     }
 }
 
