@@ -10,6 +10,7 @@
 
 #include <stdlib.h>
 #include <pthread.h>
+
 #include "stm.h"
 #include "arch.h"
 
@@ -179,21 +180,21 @@ struct descriptor_page {
 };
 
 descriptor_root_t *get_descriptor_root(void)
-__attribute__((visibility("hidden")));
+    __attribute__((visibility("hidden")));
 
 int expire_descriptor_if_exists(expired_descriptor_page_list_t *list)
-__attribute__((visibility("hidden")));
+    __attribute__((visibility("hidden")));
 
 void insert_descriptor(object_header_t *o,
-        descriptor_buffer_t *buffer, unsigned int expiration)
-__attribute__((visibility("hidden")));
+    descriptor_buffer_t *buffer, unsigned int expiration)
+    __attribute__((visibility("hidden")));
 
 void expire_buffer(descriptor_buffer_t *buffer,
-        expired_descriptor_page_list_t *exp_list)
-__attribute__((visibility("hidden")));
+    expired_descriptor_page_list_t *exp_list)
+    __attribute__((visibility("hidden")));
 
 inline void increment_current_index(descriptor_buffer_t *buffer)
-__attribute__((visibility("hidden")));
+    __attribute__((visibility("hidden")));
 
 int run_finalizer(object_header_t *o);
 
