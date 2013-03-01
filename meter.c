@@ -11,9 +11,9 @@
 #include "stm-debug.h"
 #include "meter.h"
 
-#ifdef SCM_CALCMEM
+//#ifdef SCM_CALCMEM
 #include <malloc.h>
-#endif //SCM_CALCMEM
+//#endif //SCM_CALCMEM
 
 //#ifdef SCM_CALCOVERHEAD
 long mem_overhead __attribute__ ((visibility("hidden"))) = 0 ;
