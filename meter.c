@@ -66,7 +66,7 @@ void print_memory_consumption() {
         start_time = usec;
     }
 
-    //struct mallinfo info = mallinfo();
+    struct mallinfo info = mallinfo();
 
     if (mem_meter_enabled != 0) {
         printf("memusage:\t%lu\t%ld\n", usec - start_time, alloc_mem - freed_mem);
