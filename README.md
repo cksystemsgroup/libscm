@@ -2,18 +2,26 @@ libscm
 ======
 
 Self-collecting mutators for the C programming language
- * Copyright (c) 2010 Martin Aigner, Andreas Haas
- * <http://cs.uni-salzburg.at/~maigner>
- * <http://cs.uni-salzburg.at/~ahaas>
- *
- * University Salzburg, www.uni-salzburg.at
- * Department of Computer Science, cs.uni-salzburg.at
- *
- * <http://tiptoe.cs.uni-salzburg.at/short-term-memory/>
 
+* Copyright (c) 2010, the Short-term Memory Project Authors.
+* All rights reserved. Please see the AUTHORS file for details.
+* Use of this source code is governed by a BSD license that
+* can be found in the LICENSE file.
 
-Short-term Memory for Self-collecting Mutators
------------------------------------------------
+Self-collecting mutators implement the short-term memory model
+described in:
+
+@InProceedings{ISMM11,
+  author = {M. Aigner and A. Haas and C.M. Kirsch and M. Lippautz and
+            A. Sokolova and S. Stroka and A. Unterweger},
+  title = {Short-term Memory for Self-collecting Mutators},
+  booktitle = {Proc. International Symposium on Memory Management (ISMM)},
+  year = {2011},
+  publisher = {ACM}
+}
+
+Abstract:
+
 We propose a new memory model for heap management, called short-term
 memory, and concurrent implementations of short-term memory for Java
 and C, called self-collecting mutators.  In short-term memory objects
@@ -50,8 +58,10 @@ How to build libscm
 
 Additional Information
 -----------------------
-Take a look at our project webpage at
+Take a look at our project webpage:
+
 <http://tiptoe.cs.uni-salzburg.at/short-term-memory/>
 
-Detailed information regarding the implementation can be found here: 
+Detailed information regarding the implementation can be found here:
+
 <http://cs.uni-salzburg.at/~maigner/publications/masters_thesis.pdf>

@@ -1,31 +1,14 @@
 /*
- * Copyright (c) 2010 Martin Aigner, Andreas Haas
- * http://cs.uni-salzburg.at/~maigner
- * http://cs.uni-salzburg.at/~ahaas
- *
- * University Salzburg, www.uni-salzburg.at
- * Department of Computer Science, cs.uni-salzburg.at
- */
-
-/*
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Copyright (c) 2010, the Short-term Memory Project Authors.
+ * All rights reserved. Please see the AUTHORS file for details.
+ * Use of this source code is governed by a BSD license that
+ * can be found in the LICENSE file.
  */
 
 #include <stdio.h>
 #include <pthread.h>
 #include <string.h>
+
 #include "stm.h"
 #include "scm-desc.h"
 #include "stm-debug.h"
@@ -38,7 +21,7 @@
 
 #ifdef SCM_MAKE_MICROBENCHMARKS
 //declare a thread-local field to measure the overhead by malloc and free
-__thread unsigned long long allocator_overhead __attribute__ ((aligned (64))) = 0;
+__thread unsigned long long allocator_overhead __attribute__((aligned (64))) = 0;
 #endif
 
 static long global_time = 0;
@@ -48,21 +31,16 @@ static unsigned int number_of_threads = 0;
 static unsigned int ticked_threads_countdown = 1;
 
 //protects global_time, number_of_threads and ticked_threads_countdown
-static pthread_spinlock_t global_time_lock;
+static pthread_mutex_t global_time_lock = PTHREAD_MUTEX_INITIALIZER;
 
 static descriptor_root_t *terminated_descriptor_roots = NULL;
 
 //protects the data structures of terminated threads
-static pthread_mutex_t terminated_descriptor_roots_mutex =
+static pthread_mutex_t terminated_descriptor_roots_lock =
         PTHREAD_MUTEX_INITIALIZER;
-
-//the first thread joining libscm has to initialize the thread local storage
-static unsigned int init_threads = 0;
-//static pthread_key_t descriptor_root_key;
 
 //thread local reference to the descriptor root
 __thread descriptor_root_t *descriptor_root;
-
 
 static inline void lock_global_time();
 static inline void unlock_global_time();
@@ -77,24 +55,19 @@ void __wrap_free(void *ptr);
 size_t __wrap_malloc_usable_size(void *ptr);
 
 //avoid ELF interposition of exported but internally used symbols
-//by creating static aliases //TODO: check
-static void scm_resume_thread_internal(void)
-__attribute__((alias("scm_resume_thread")));
+//by creating weak, hidden aliases
 
-static void scm_block_thread_internal(void)
-__attribute__((alias("scm_block_thread")));
+extern __typeof__(scm_resume_thread) scm_resume_thread_internal
+    __attribute__((weak, alias("scm_resume_thread"), visibility ("hidden")));
 
-void scm_free(void *ptr)
-__attribute__((alias("__wrap_free")));
+extern __typeof__(scm_block_thread) scm_block_thread_internal
+    __attribute__((weak, alias("scm_block_thread"), visibility("hidden")));
 
-void scm_collect_internal(void)
-__attribute__((alias("scm_collect")));
+extern __typeof__(scm_collect) scm_collect_internal
+    __attribute__((weak, alias("scm_collect"), visibility("hidden")));
 
-void* scm_malloc(size_t size)
-__attribute__((alias("__wrap_malloc")));
-
-static void* __wrap_malloc_internal(size_t size)
-__attribute__((alias("__wrap_malloc")));
+extern __typeof__(__wrap_malloc) __wrap_malloc_internal
+    __attribute__((weak, alias("__wrap_malloc"), visibility("hidden")));
 
 void *__wrap_malloc(size_t size) {
     MICROBENCHMARK_START
@@ -130,6 +103,10 @@ void *__wrap_malloc(size_t size) {
     MICROBENCHMARK_DURATION("malloc")
 
     return ptr;
+}
+
+inline void *scm_malloc(size_t size) {
+    return __wrap_malloc(size);
 }
 
 void *__wrap_calloc(size_t nelem, size_t elsize) {
@@ -236,6 +213,10 @@ void __wrap_free(void *ptr) {
     MICROBENCHMARK_DURATION("free")
 }
 
+inline void scm_free(void *ptr) {
+    __wrap_free(ptr);
+}
+
 size_t __wrap_malloc_usable_size(void *ptr) {
     MICROBENCHMARK_START
 
@@ -260,7 +241,6 @@ void scm_tick(void) {
     //we incremented the current_index of the locally_clocked_buffer
     expire_buffer(&dr->locally_clocked_buffer,
             &dr->list_of_expired_descriptors);
-
 
 #ifndef SCM_EAGER_COLLECTION
     //we also process expired descriptors at tick
@@ -323,7 +303,6 @@ void scm_global_tick(void) {
 
     } //else: we already ticked in this global_phase
     // each thread can only do a global_tick once per global phase
-
 
 #ifndef SCM_EAGER_COLLECTION
     //we also process expired descriptors at tick
@@ -435,20 +414,11 @@ inline descriptor_root_t *get_descriptor_root() {
  * terminated threads.
  */
 void scm_register_thread() {
-    //descriptor_root_t *descriptor_root;
-
     lock_descriptor_roots();
-
-    if (init_threads == 0) {
-        //initialize thread local data key and the global_time_lock spinlock
-        //when the first thread is registered
-        //pthread_key_create(&descriptor_root_key, NULL);
-        pthread_spin_init(&global_time_lock, PTHREAD_PROCESS_PRIVATE);
-        init_threads = 1;
-    }
 
     if (terminated_descriptor_roots != NULL) {
         descriptor_root = terminated_descriptor_roots;
+
         terminated_descriptor_roots = terminated_descriptor_roots->next;
     } else {
         descriptor_root = new_descriptor_root();
@@ -456,12 +426,9 @@ void scm_register_thread() {
 
     unlock_descriptor_roots();
 
-    //pthread_setspecific(descriptor_root_key, descriptor_root);
-
     //assert: if descriptor_root belonged to a terminated thread,
     //block_thread was invoked on this thread
     scm_resume_thread_internal();
-
 }
 
 /*
@@ -580,30 +547,30 @@ static descriptor_root_t *new_descriptor_root() {
 
 static inline void lock_global_time() {
 #ifdef SCM_PRINTLOCK
-    if (pthread_spin_trylock(&global_time_lock)) {
+    if (pthread_mutex_trylock(&global_time_lock)) {
         printf("thread %ld BLOCKS on global_time_lock\n", pthread_self());
-        pthread_spin_lock(&global_time_lock);
+        pthread_mutex_lock(&global_time_lock);
     }
 #else
-    pthread_spin_lock(&global_time_lock);
+    pthread_mutex_lock(&global_time_lock);
 #endif
 }
 
 static inline void unlock_global_time() {
-    pthread_spin_unlock(&global_time_lock);
+    pthread_mutex_unlock(&global_time_lock);
 }
 
 static inline void lock_descriptor_roots() {
 #ifdef SCM_PRINTLOCK
-    if (pthread_mutex_trylock(&terminated_descriptor_roots_mutex)) {
-        printf("thread %ld BLOCKS on lock_descriptor_roots\n", pthread_self());
-        pthread_mutex_lock(&terminated_descriptor_roots_mutex);
+    if (pthread_mutex_trylock(&terminated_descriptor_roots_lock)) {
+        printf("thread %ld BLOCKS on terminated_descriptor_roots_lock\n", pthread_self());
+        pthread_mutex_lock(&terminated_descriptor_roots_lock);
     }
 #else
-    pthread_mutex_lock(&terminated_descriptor_roots_mutex);
+    pthread_mutex_lock(&terminated_descriptor_roots_lock);
 #endif
 }
 
 static inline void unlock_descriptor_roots() {
-    pthread_mutex_unlock(&terminated_descriptor_roots_mutex);
+    pthread_mutex_unlock(&terminated_descriptor_roots_lock);
 }

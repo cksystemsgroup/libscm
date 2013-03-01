@@ -1,26 +1,8 @@
 /*
- * Copyright (c) 2010 Martin Aigner, Andreas Haas
- * http://cs.uni-salzburg.at/~maigner
- * http://cs.uni-salzburg.at/~ahaas
- *
- * University Salzburg, www.uni-salzburg.at
- * Department of Computer Science, cs.uni-salzburg.at
- */
-
-/*
- *  This program is free software; you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation; either version 2 of the License, or
- *  (at your option) any later version.
- *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program; if not, write to the Free Software
- *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Copyright (c) 2010, the Short-term Memory Project Authors.
+ * All rights reserved. Please see the AUTHORS file for details.
+ * Use of this source code is governed by a BSD license that
+ * can be found in the LICENSE file.
  */
 
 #ifndef _SCM_DESC_H
@@ -28,6 +10,7 @@
 
 #include <stdlib.h>
 #include <pthread.h>
+
 #include "stm.h"
 #include "arch.h"
 
@@ -197,21 +180,21 @@ struct descriptor_page {
 };
 
 descriptor_root_t *get_descriptor_root(void)
-__attribute__((visibility("hidden")));
+    __attribute__((visibility("hidden")));
 
 int expire_descriptor_if_exists(expired_descriptor_page_list_t *list)
-__attribute__((visibility("hidden")));
+    __attribute__((visibility("hidden")));
 
 void insert_descriptor(object_header_t *o,
-        descriptor_buffer_t *buffer, unsigned int expiration)
-__attribute__((visibility("hidden")));
+    descriptor_buffer_t *buffer, unsigned int expiration)
+    __attribute__((visibility("hidden")));
 
 void expire_buffer(descriptor_buffer_t *buffer,
-        expired_descriptor_page_list_t *exp_list)
-__attribute__((visibility("hidden")));
+    expired_descriptor_page_list_t *exp_list)
+    __attribute__((visibility("hidden")));
 
 inline void increment_current_index(descriptor_buffer_t *buffer)
-__attribute__((visibility("hidden")));
+    __attribute__((visibility("hidden")));
 
 int run_finalizer(object_header_t *o);
 
