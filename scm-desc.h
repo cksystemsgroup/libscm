@@ -161,7 +161,7 @@ struct descriptor_root {
     descriptor_buffer_t locally_clocked_buffer;
 
     /* a pool of descriptor pages for re-use */
-    descriptor_page_t * descriptor_page_pool[SCM_DECRIPTOR_PAGE_FREELIST_SIZE];
+    descriptor_page_t * descriptor_page_pool[SCM_DESCRIPTOR_PAGE_FREELIST_SIZE];
     long number_of_pooled_descriptor_pages;
 
     /* used to build a list of terminated descriptor_roots. This is only

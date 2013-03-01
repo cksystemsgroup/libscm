@@ -62,7 +62,7 @@ static inline void recycle_descriptor_page(descriptor_page_t *page) {
     descriptor_root_t *dr = get_descriptor_root();
 
     if (dr->number_of_pooled_descriptor_pages <
-            SCM_DECRIPTOR_PAGE_FREELIST_SIZE) {
+            SCM_DESCRIPTOR_PAGE_FREELIST_SIZE) {
         dr->descriptor_page_pool
                 [dr->number_of_pooled_descriptor_pages] = page;
         dr->number_of_pooled_descriptor_pages++;

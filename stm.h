@@ -43,7 +43,7 @@
  *   ((SCM_DESCRIPTOR_PAGE_SIZE - 2 * sizeof(void*))/sizeof(void*))
  *
  * an upper bound on the number of descriptor pages that are cached
- * #define SCM_DECRIPTOR_PAGE_FREELIST_SIZE 10
+ * #define SCM_DESCRIPTOR_PAGE_FREELIST_SIZE 10
  *
  * print the number of cpu cycles for each public function. Make shure to NOT
  * enable any other debug options together with SCM_MAKE_MICROBENCHMARKS
