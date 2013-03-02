@@ -11,37 +11,27 @@
 #include <stdlib.h>
 #include <pthread.h>
 
+#include <errno.h>
+#include <limits.h>
+
 #include "stm.h"
 #include "arch.h"
+
+#include "regmalloc.h"
 
 #ifdef SCM_MT_DEBUG
 #define printf printf("%lu: ", pthread_self());printf
 #endif
 
 #ifdef SCM_MAKE_MICROBENCHMARKS
-#define MICROBENCHMARK_START \
-        allocator_overhead = 0; \
-        unsigned long long _mb_start = rdtsc();
+#define MICROBENCHMARK_START unsigned long long _mb_start = rdtsc();
 #define MICROBENCHMARK_STOP unsigned long long _mb_stop = rdtsc();
 #define MICROBENCHMARK_DURATION(_location) \
-        printf("tid: %lu microbenchmark_at_%s:\t%llu\n", \
-        pthread_self(), \
-        _location, \
-        allocator_overhead == 0 ? \
-        (_mb_stop-_mb_start) : \
-        ((_mb_stop-_mb_start) - allocator_overhead)); \
-        allocator_overhead = 0;
-#define OVERHEAD_START unsigned long long _overhead_start = rdtsc();
-#define OVERHEAD_STOP \
-        unsigned long long _overhead_stop = rdtsc(); \
-        allocator_overhead += (_overhead_stop - _overhead_start);
-
+    printf("microbenchmark_at_%s:\t%llu\n", _location, (_mb_stop-_mb_start));
 #else
 #define MICROBENCHMARK_START //NOOP
 #define MICROBENCHMARK_STOP //NOOP
 #define MICROBENCHMARK_DURATION(_location) //NOOP
-#define OVERHEAD_START //NOOP
-#define OVERHEAD_STOP //NOOP
 #endif
 
 #ifndef SCM_DESCRIPTORS_PER_PAGE
@@ -49,148 +39,208 @@
         ((SCM_DESCRIPTOR_PAGE_SIZE - 2 * sizeof(void*))/sizeof(void*))
 #endif
 
-extern void *__real_malloc(size_t size);
-extern void *__real_calloc(size_t nelem, size_t elsize);
-extern void *__real_realloc(void *ptr, size_t size);
+#ifndef SCM_MAX_REGIONS
+#define SCM_MAX_REGIONS 10
+#endif
+
+#ifndef SCM_MAX_CLOCKS
+#define SCM_MAX_CLOCKS 10
+#endif
+
+#ifndef SCM_REGION_PAGE_FREELIST_SIZE
+#define SCM_REGION_PAGE_FREELIST_SIZE 10
+#endif
+
+#define HB_MASK (UINT_MAX - INT_MAX)
+
+#define CACHEALIGN(x) (ROUND_UP(x,8))
+#define ROUND_UP(x,y) (ROUND_DOWN(x+(y-1),y))
+#define ROUND_DOWN(x,y) (x & ~(y-1))
+
+extern void* __real_malloc(size_t size);
+extern void* __real_calloc(size_t nelem, size_t elsize);
+extern void* __real_realloc(void *ptr, size_t size);
 extern void __real_free(void *ptr);
 extern size_t __real_malloc_usable_size(void *ptr);
 
 /*
- * objects allocated using libscm haven an additional object header that
- * is added before the chunk returned by the malloc implemented in the
- * standard library.
+ * objects allocated through libscm have an additional object header that
+ * is located before the chunk storing the object.
  *
- * --------------------------------  <- pointer to object_header_t
- * | 32 bit descriptor counter dc |
- * | 32 bit finalizer index       |
- * --------------------------------  <- pointer to the payload data that is
- * | payload data                 |     returned to the user
- * ~ returned to user             ~
- * |                              |
- * --------------------------------
+ * -------------------------  <- pointer to object_header_t
+ * | descriptor counter OR |
+ * | region id AND         |
+ * | finalizer index       |
+ * -------------------------  <- pointer to the payload data that is
+ * | payload data          |     returned to the user
+ * ~ returned to user      ~
+ * |                       |
+ * -------------------------
  *
  */
+struct object_header_t {
+    // Depending on whether the region-based allocator is
+    // used or not, the following field will be positive or negative.
+    // A negative value indicates region allocation. Resetting the
+    // hsb returns the region id.
+    int dc_or_region_id;
+    // finalizer_index must be signed so that a finalizer_index
+    // may be set to -1 indicating that no finalizer exists
+    int finalizer_index;
+};
+
 #define OBJECT_HEADER(_ptr) \
-    (object_header_t*)(_ptr - sizeof (object_header_t))
+    (object_header_t*)(_ptr - sizeof(object_header_t))
 #define PAYLOAD_OFFSET(_o) \
     ((void*)(_o) + sizeof(object_header_t))
 
-typedef struct descriptor_root descriptor_root_t;
-typedef struct object_header object_header_t;
-typedef struct descriptor_page_list descriptor_page_list_t;
-typedef struct expired_descriptor_page_list expired_descriptor_page_list_t;
-typedef struct descriptor_page descriptor_page_t;
-typedef struct descriptor_buffer descriptor_buffer_t;
-
-struct object_header {
-    unsigned int dc; /* number of descriptors pointing here */
-    int finalizer_index; /* identifier of a finalizer function */
+/*
+ * A chunk of contiguous memory that holds descriptors with the same
+ * expiration date.
+ */
+struct descriptor_page_t {
+    descriptor_page_t *next;
+    unsigned long number_of_descriptors;
+    object_header_t* descriptors[SCM_DESCRIPTORS_PER_PAGE];
 };
 
 /* 
- * singly linked list of descriptor pages
+ * singly-linked list of descriptor pages
  */
-struct descriptor_page_list {
-    descriptor_page_t *first;
-    descriptor_page_t *last;
+struct descriptor_page_list_t {
+    descriptor_page_t* first;
+    descriptor_page_t* last;
 };
 
 /*
- * singly linked list of expired descriptor pages
+ * singly-linked list of expired descriptor pages
  */
-struct expired_descriptor_page_list {
-    descriptor_page_t *first;
-    descriptor_page_t *last;
-
-    /* index of the first descriptor in first descriptor page. This is the
-     * descriptor that will we processed upon expiration */
-    long begin;
+struct expired_descriptor_page_list_t {
+    descriptor_page_t* first;
+    descriptor_page_t* last;
+    unsigned long collected;
 };
 
 /*
- * statically allocate memory for the locally clocked descriptor buffers
- * size of the locally clocked buffer is SCM_MAX_EXPIRATION_EXTENSION + 1
- * because of the additional slots for
+ * Statically allocate memory for the locally clocked descriptor buffers.
+ * Size of the locally clocked buffer is SCM_MAX_EXPIRATION_EXTENSION + 1
+ * because of the additional slot for:
  * 1. slot for the current time
  *
- * statically allocate memory for the globally clocked descriptor buffers
- * size of the globally clocked buffer is SCM_MAX_EXPIRATION_EXTENSION + 3
- * because of the additional slots for
+ * Statically allocate memory for the globally clocked descriptor buffers.
+ * Size of the globally clocked buffer is SCM_MAX_EXPIRATION_EXTENSION + 2
+ * because of the additional slots for:
  *  1. slot for the current time
  *  2. adding descriptors at current + increment + 1
- *  3. removing descriptors from current - 1
  *
- * Note: both buffers allocate SCM_MAX_EXPIRATION_EXTENSION + 3 slots for
+ * Note: both buffers allocate SCM_MAX_EXPIRATION_EXTENSION + 2 slots for
  * page_lists but the locally clocked buffer uses only
  * SCM_MAX_EXPIRATION_EXTENSION + 1 slots
  */
-struct descriptor_buffer {
-    /* for every possible expiration extension, there is an array element
-     * in "not_expired" that contains a descriptor page list where the 
-     * descriptor is stored in */
-    descriptor_page_list_t not_expired[SCM_MAX_EXPIRATION_EXTENSION + 3];
+struct descriptor_buffer_t {
+    descriptor_page_list_t not_expired[SCM_MAX_EXPIRATION_EXTENSION + 2];
 
-    /* "not_expired_length" gives the length of the "not_expired" array */
+    // The field not_expired_length may have the following values:
+    //		0 : indicates that the descriptor buffer is unused
+    //		SCM_MAX_EXPIRATION_EXTENSION + 1 : indicates that the descriptor
+    //				buffer is used with a thread-local clock, and
+    //		SCM_MAX_EXPIRATION_EXTENSION + 2 : indicates that the descriptor
+    //				buffer is used with the global clock.
     unsigned int not_expired_length;
 
-    /* "current_index" is a index to the descriptor_page_list in
-     * "not_expired" that will expire after the next tick.*/
+    // current_index is an index to the descriptor_page_list in
+    // not_expired that will expire after the next tick.
     unsigned int current_index;
+
+    // status: age != descriptor_root->current_time => zombie,
+    // Initially, all descriptor buffers but the first one are zombies
+    // (because register thread increments descriptor_root->current_time)
+    unsigned int age;
 };
 
-/* 
- * A collection of data structures. Each thread has a pointer to 
- * a "descriptor_root" in a thread-specific data slot
+#ifndef SCM_TEST
+descriptor_root_t *get_descriptor_root(void)
+    __attribute__((visibility("hidden")));
+#endif
+
+// The descriptor root is stored as thread-local storage variable.
+// According to perf tools from google __thread is faster than pthread_getspecific().
+extern __thread descriptor_root_t* descriptor_root;
+
+/**
+ * Descriptor root holds thread-local data for descriptor
+ * and region management.
  */
-struct descriptor_root {
-    /* "global_phase" indicates if the thread has already ticked in the actual 
-     * global phase. A global phase is the interval between two increments of
-     * the global clock
-     * 
-     * global_phase == global time => thread has not ticked yet 
-     * global_phase == global time +1 => thread has already ticked at least once
-     */
-    long global_phase;
+struct descriptor_root_t {
+    // global_phase indicates if the thread has already ticked in the current 
+    // global phase. A global phase is the interval between two increments of
+    // the global clock (global_time).
+    // 
+    // global_phase == global_time => thread has not ticked yet 
+    // global_phase == global_time+1 => thread has already ticked at least once
+    unsigned long global_phase;
 
-    expired_descriptor_page_list_t list_of_expired_descriptors;
+    expired_descriptor_page_list_t list_of_expired_obj_descriptors;
+    expired_descriptor_page_list_t list_of_expired_reg_descriptors;
 
-    /* globally_clocked_buffer->current_index is the thread-global time */
-    descriptor_buffer_t globally_clocked_buffer;
+    descriptor_buffer_t globally_clocked_obj_buffer;
+    descriptor_buffer_t globally_clocked_reg_buffer;
 
-    /* locally_clocked_buffer->current_index is the thread-local time */
-    descriptor_buffer_t locally_clocked_buffer;
+    descriptor_buffer_t locally_clocked_obj_buffer[SCM_MAX_CLOCKS];
+    descriptor_buffer_t locally_clocked_reg_buffer[SCM_MAX_CLOCKS];
 
-    /* a pool of descriptor pages for re-use */
-    descriptor_page_t * descriptor_page_pool[SCM_DESCRIPTOR_PAGE_FREELIST_SIZE];
-    long number_of_pooled_descriptor_pages;
+    unsigned int next_clock_index;
 
-    /* used to build a list of terminated descriptor_roots. This is only
-     * used after the thread terminated */
+    // The following field indicates the time when the thread was created.
+    // The field is necessary to distinguish zombie descriptor buffers
+    // from currently used descriptor buffers.
+    // Initially, all descriptor buffers but the first one are zombies
+    // (because register thread increments the current_time)
+    unsigned int current_time;
+
+    // The round_robin field is an index of the locally_clocked buffers
+    // which constantly increases modulo SCM_MAX_CLOCKS - 1.
+    // round_robin is never set to 0 because the first locally_clocked
+    // buffer is the base clock of the thread and can never be a
+    // zombie buffer.
+    // round_robin enables constant-time cleaning of zombie buffers.
+    unsigned int round_robin;
+
+    // A pool of descriptor pages for re-use.
+    descriptor_page_t* descriptor_page_pool[SCM_DESCRIPTOR_PAGE_FREELIST_SIZE];
+    unsigned long number_of_pooled_descriptor_pages;
+
+    region_t regions[SCM_MAX_REGIONS];
+    unsigned int next_reg_index;
+
+    region_page_t* region_page_pool;
+    unsigned long number_of_pooled_region_pages;
+
+    // Singly-linked list of terminated descriptor_roots.
+    // This is only used after the thread terminated.
     descriptor_root_t *next;
 };
 
-/*
- * a chunk of contiguous memory that holds a set of descriptors with the same
- * expiration date.
- */
-struct descriptor_page {
-    descriptor_page_t* next; /* used to build a linked list*/
-    unsigned long number_of_descriptors; /* utilization of descriptors[] */
-    object_header_t * descriptors[SCM_DESCRIPTORS_PER_PAGE]; /* memory area */
-};
-
-descriptor_root_t *get_descriptor_root(void)
+/* expire_reg_descriptor_if_exists()
+ * expires object descriptors */
+int expire_obj_descriptor_if_exists(expired_descriptor_page_list_t *list)
     __attribute__((visibility("hidden")));
 
-int expire_descriptor_if_exists(expired_descriptor_page_list_t *list)
+/* expire_reg_descriptor_if_exists()
+ * expires region descriptors */
+int expire_reg_descriptor_if_exists(expired_descriptor_page_list_t *list)
     __attribute__((visibility("hidden")));
 
-void insert_descriptor(object_header_t *o,
-    descriptor_buffer_t *buffer, unsigned int expiration)
+/* Takes an object or a region as parameter ptr */
+void insert_descriptor(void* ptr,
+                       descriptor_buffer_t *buffer, unsigned int expiration)
     __attribute__((visibility("hidden")));
 
+/* Expires the descriptor buffer by appending
+ * the just-expired descriptors to the
+ * list_of_expired_[obj|reg]_descriptors. */
 void expire_buffer(descriptor_buffer_t *buffer,
-    expired_descriptor_page_list_t *exp_list)
+                   expired_descriptor_page_list_t *exp_list)
     __attribute__((visibility("hidden")));
 
 inline void increment_current_index(descriptor_buffer_t *buffer)
