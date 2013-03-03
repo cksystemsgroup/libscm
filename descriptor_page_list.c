@@ -58,7 +58,9 @@ static inline void recycle_descriptor_page(descriptor_page_t *page) {
 
     if (descriptor_root->number_of_pooled_descriptor_pages <
             SCM_DESCRIPTOR_PAGE_FREELIST_SIZE) {
+
         descriptor_root->descriptor_page_pool[descriptor_root->number_of_pooled_descriptor_pages] = page;
+    
         descriptor_root->number_of_pooled_descriptor_pages++;
 
 #ifdef SCM_PRINTMEM

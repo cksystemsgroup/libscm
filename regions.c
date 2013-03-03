@@ -326,7 +326,7 @@ static void recycle_region(region_t* region) {
  * descriptor counter is 0, the region to which the descriptor points to is recycled.
  * Returns 0 iff no more expired region descriptors exist.
  */
-int expire_reg_descriptor_if_exists(expired_descriptor_page_list_t *list) {
+int expire_region_descriptor_if_exists(expired_descriptor_page_list_t *list) {
 
 // check pre-conditions
 #ifdef SCM_CHECK_CONDITIONS
