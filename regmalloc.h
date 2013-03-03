@@ -30,6 +30,7 @@
  */
 struct region_page_t {
     region_page_t* nextPage;
+    
     char memory[REGION_PAGE_PAYLOAD_SIZE];
 };
 
