@@ -5,15 +5,7 @@
  * can be found in the LICENSE file.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-
-#include "stm.h"
-#include "scm-desc.h"
-#include "regmalloc.h"
-#include "meter.h"
-#include "arch.h"
+#include "regions.h"
 
 /**********************************************************************/
 /************************* Short-term Regions *************************/

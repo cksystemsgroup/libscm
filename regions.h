@@ -5,11 +5,18 @@
  * can be found in the LICENSE file.
  */
 
+#ifndef _REGIONS_H
+#define _REGIONS_H
+
 #include <string.h>
 #include <unistd.h>
+#include <stdio.h>
+#include <stdlib.h>
 
-#ifndef REGMALLOC_H_
-#define REGMALLOC_H_
+#include "scm.h"
+#include "threads.h"
+#include "meter.h"
+#include "arch.h"
 
 #ifndef REGION_PAGE_SIZE
 #define REGION_PAGE_SIZE 4096
@@ -63,4 +70,4 @@ struct region_t {
     void* last_address_in_last_page;
 };
 
-#endif /* REGMALLOC_H_ */
+#endif /* _REGIONS_H */

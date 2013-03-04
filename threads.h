@@ -5,8 +5,8 @@
  * can be found in the LICENSE file.
  */
 
-#ifndef _SCM_DESC_H
-#define	_SCM_DESC_H
+#ifndef _THREADS_H
+#define	_THREADS_H
 
 #include <stdlib.h>
 #include <pthread.h>
@@ -14,10 +14,9 @@
 #include <errno.h>
 #include <limits.h>
 
-#include "stm.h"
+#include "scm.h"
 #include "arch.h"
-
-#include "regmalloc.h"
+#include "regions.h"
 
 #ifdef SCM_MT_DEBUG
 #define printf printf("%lu: ", pthread_self());printf
@@ -248,4 +247,4 @@ inline void increment_current_index(descriptor_buffer_t *buffer)
 
 int run_finalizer(object_header_t *o);
 
-#endif	/* _SCM_DESC_H */
+#endif	/* _THREADS_H */

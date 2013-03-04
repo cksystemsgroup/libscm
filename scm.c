@@ -5,18 +5,7 @@
  * can be found in the LICENSE file.
  */
 
-#include <stdio.h>
-#include <pthread.h>
-#include <string.h>
-
-#include "stm.h"
-#include "scm-desc.h"
-#include "regmalloc.h"
-#include "meter.h"
-#include "arch.h"
-
-#include <fcntl.h>
-#include <sys/mman.h>
+#include "scm.h"
 
 #ifdef SCM_PRINTMEM
 #include <malloc.h>

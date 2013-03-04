@@ -5,10 +5,21 @@
  * can be found in the LICENSE file.
  */
 
-#ifndef _STM_H
-#define	_STM_H
+#ifndef _SCM_H
+#define	_SCM_H
 
 #include <stddef.h>
+#include <stdio.h>
+#include <pthread.h>
+#include <string.h>
+#include <fcntl.h>
+#include <sys/mman.h>
+
+#include "scm.h"
+#include "threads.h"
+#include "regions.h"
+#include "meter.h"
+#include "arch.h"
 
 /*
  * one may use the following compile time configuration for libscm.
@@ -222,4 +233,4 @@ void scm_resume_thread(void);
  */
 void scm_collect(void);
 
-#endif	/* _STM_H */
+#endif	/* _SCM_H */
