@@ -234,17 +234,15 @@ size_t __wrap_malloc_usable_size(void *ptr) {
     return __real_malloc_usable_size(object) - sizeof (object_header_t);
 }
 
-// TODO: continue here
-
 /**
- * scm_tick is used to advance the local time of the calling thread
+ * scm_tick advances the local time of the calling thread
  */
-void scm_tick(void) {
+inline void scm_tick(void) {
     scm_tick_clock(0);
 }
 
 /**
- * scm_global_tick is used to advance the global time of the calling thread
+ * scm_global_tick advances the global time of the calling thread
  */
 void scm_global_tick(void) {
     MICROBENCHMARK_START
@@ -275,22 +273,24 @@ void scm_global_tick(void) {
         expire_buffer(&descriptor_root->globally_clocked_reg_buffer,
                       &descriptor_root->list_of_expired_reg_descriptors);
 
-        if (atomic_int_dec_and_test((int*) & ticked_threads_countdown)) {
-
+        if (atomic_int_dec_and_test((int*) &ticked_threads_countdown)) {
+            // we are the last thread to tick in this global phase
+            
             lock_global_time();
 
             ticked_threads_countdown = number_of_threads;
+            
             //assert: descriptor_root->global_phase == global_time + 1
             global_time++;
 
             unlock_global_time();
 
-        } //else global time does not advance
+        } //else global_time does not advance, other threads have to do a global_tick
 
-    } //else: we already ticked in this global_phase
+    } //else we already ticked in this global_phase
 
 
-	if(SCM_MAX_CLOCKS > 1) {
+	if (SCM_MAX_CLOCKS > 1) {
 
 		unsigned int rr_index = descriptor_root->round_robin;
 
@@ -304,23 +304,23 @@ void scm_global_tick(void) {
 			descriptor_root->locally_clocked_obj_buffer[rr_index].age;
 
 		// if the next round_robin buffer is a zombie -> cleanup incrementally
-		if ( age_of_rr_buffer != descriptor_root->current_time &&
+		if (age_of_rr_buffer != descriptor_root->current_time &&
 				descriptor_root->locally_clocked_obj_buffer[rr_index]
 				.not_expired_length != 0) {
 
 			increment_and_expire_clock(rr_index);
 
 			rr_index = (rr_index + 1) % SCM_MAX_CLOCKS;
-			if (rr_index == 0) {
+			
+            if (rr_index == 0) {
 				rr_index = 1;
 			}
-			descriptor_root->round_robin = rr_index;
+			
+            descriptor_root->round_robin = rr_index;
 		}
 	}
 
 #ifndef SCM_EAGER_COLLECTION
-    //we also process expired descriptors at tick
-    //to get a cyclic allocation/free scheme. this is optional
     scm_lazy_collect();
 #else
     scm_eager_collect();
@@ -341,7 +341,6 @@ void scm_lazy_collect(void) {
     expire_obj_descriptor_if_exists(&descriptor_root->list_of_expired_obj_descriptors);
 
     expire_reg_descriptor_if_exists(&descriptor_root->list_of_expired_reg_descriptors);
-
 }
 #else
 /**
@@ -353,7 +352,6 @@ void scm_eager_collect(void) {
                 &descriptor_root->list_of_expired_obj_descriptors));
     while (expire_reg_descriptor_if_exists(
                 &descriptor_root->list_of_expired_reg_descriptors));
-
 }
 #endif
 
@@ -361,11 +359,12 @@ void scm_eager_collect(void) {
  * Checks whether the given extension time is in the bounds of the allowed
  * extension time.
  */
-static inline int check_extension(int given_extension) {
+static inline unsigned int check_extension(unsigned int given_extension) {
     if (given_extension > SCM_MAX_EXPIRATION_EXTENSION) {
 #ifdef SCM_DEBUG
         printf("violation of SCM_MAX_EXPIRATION_EXTENT\n");
 #endif
+
         return SCM_MAX_EXPIRATION_EXTENSION;
     } else {
         return given_extension;
@@ -373,8 +372,8 @@ static inline int check_extension(int given_extension) {
 }
 
 /**
- * scm_global_refresh adds extension time units to the expiration time of
- * ptr and takes care that all other threads have enough time to also call
+ * scm_global_refresh adds extension time units + 2 to the expiration time of
+ * ptr making sure that all other threads have enough time to also call
  * global_refresh(ptr, extension). If the object is part of a region, the
  * region is refreshed instead.
  */
@@ -386,16 +385,21 @@ void scm_global_refresh(void *ptr, unsigned int extension) {
 #ifdef SCM_DEBUG
 		printf("scm_global_refresh(%lx, %d)\n", (unsigned long) ptr, extension);
 #endif
+
         int region_id = object->dc_or_region_id & ~HB_MASK;
+
         scm_global_refresh_region(region_id, extension);
     } else {
 
         extension = check_extension(extension);
+
         MICROBENCHMARK_START
+
 #ifdef SCM_DEBUG
         printf("scm_global_refresh(%lx, %d)\n", (unsigned long) ptr, extension);
 #endif
-        atomic_int_inc((int*) & object->dc_or_region_id);
+
+        atomic_int_inc((int*) &object->dc_or_region_id);
 
         insert_descriptor(object,
                           &descriptor_root->globally_clocked_obj_buffer, extension + 2);
@@ -412,12 +416,12 @@ void scm_global_refresh(void *ptr, unsigned int extension) {
 		MICROBENCHMARK_STOP
 		MICROBENCHMARK_DURATION("scm_global_refresh")
     }
-
 }
+
 /**
- * scm_global_refresh_region() adds extension time units to the expiration time of
- * a region and takes care that all other threads have enough time to also call
- * scm_global_refresh_region(region_id, extension).
+ * scm_global_refresh_region() adds extension time units + 2 to
+ * the expiration time of a region making sure that all other threads have
+ * enough time to also call scm_global_refresh_region(region_id, extension).
  */
 void scm_global_refresh_region(const int region_id, unsigned int extension) {
 
@@ -429,13 +433,15 @@ void scm_global_refresh_region(const int region_id, unsigned int extension) {
 #endif
 
     MICROBENCHMARK_START
+
 #ifdef SCM_DEBUG
 	printf("scm_global_refresh_region(%d, %d)\n", region_id, extension);
 #endif
+
 	extension = check_extension(extension);
 
 	region_t* region = &(descriptor_root->regions[region_id]);
-	atomic_int_inc((int*) & region->dc);
+	atomic_int_inc((int*) &region->dc);
 
 	insert_descriptor(region,
 					  &descriptor_root->globally_clocked_reg_buffer, extension + 2);
@@ -454,28 +460,14 @@ void scm_global_refresh_region(const int region_id, unsigned int extension) {
 }
 
 /**
- * scm_refresh() is the same as scm_global_refresh but does not take
- * care for other threads. In a multi-clock environment, scm_refresh refreshes
+ * scm_refresh() is the same as scm_global_refresh without the
+ * additional extension to accommodate other threads.
+ * In a multi-clock environment, scm_refresh refreshes
  * the object with the thread-local base clock.
  * If the object is part of a region, the region is refreshed instead.
  */
 void scm_refresh(void *ptr, unsigned int extension) {
     scm_refresh_with_clock(ptr, extension, 0);
-}
-
-/**
- * get_descriptor_root() is called by operations that need to access the thread
- * local meta data structures.
- */
-__inline__ descriptor_root_t *get_descriptor_root() {
-
-    void *ptr = pthread_getspecific(descriptor_root_key);
-
-    if (ptr == NULL) {
-        ptr = scm_register_thread();
-    }
-
-    return (descriptor_root_t*) ptr;
 }
 
 /**
@@ -486,14 +478,6 @@ __inline__ descriptor_root_t *get_descriptor_root() {
 static descriptor_root_t *scm_register_thread() {
     lock_descriptor_roots();
 
-    if (init_threads == 0) {
-        //initialize thread local data key and the global_time_lock spinlock
-        //when the first thread is registered
-        pthread_key_create(&descriptor_root_key, NULL);
-        pthread_spin_init(&global_time_lock, PTHREAD_PROCESS_PRIVATE);
-        init_threads = 1;
-    }
-
     if (terminated_descriptor_roots != NULL) {
         descriptor_root = terminated_descriptor_roots;
         terminated_descriptor_roots = terminated_descriptor_roots->next;
@@ -501,7 +485,6 @@ static descriptor_root_t *scm_register_thread() {
         descriptor_root = new_descriptor_root();
 
 #ifdef SCM_CHECK_CONDITIONS
-
         if(descriptor_root->round_robin != 1) {
         	fprintf(stderr, "Descriptor root initialization failed. "
         			"Round robin is %u \n", descriptor_root->round_robin);
@@ -510,19 +493,20 @@ static descriptor_root_t *scm_register_thread() {
 #endif
     }
 
-    // The current time is used to distinguish from zombie descriptor
+    // The current_time distinguishes from zombie descriptor
     // buffers which have another "age".
     // There will be an automatic buffer overflow if the last current_time
-    // was equal to UINT_MAX
+    // was equal to UINT_MAX.
     descriptor_root->current_time++;
 
     int current_time = descriptor_root->current_time;
+
     descriptor_root->locally_clocked_obj_buffer[0].age = current_time;
     descriptor_root->locally_clocked_reg_buffer[0].age = current_time;
+    
     unlock_descriptor_roots();
 
-    pthread_setspecific(descriptor_root_key, descriptor_root);
-
+    //TODO: check this
     //assert: if descriptor_root belonged to a terminated thread,
     //block_thread was invoked on this thread
     scm_resume_thread_internal();
@@ -539,8 +523,6 @@ void scm_unregister_thread() {
 
     scm_block_thread_internal();
 
-    descriptor_root_t *descriptor_root = get_descriptor_root();
-
     lock_descriptor_roots();
 
     descriptor_root->next = terminated_descriptor_roots;
@@ -553,6 +535,8 @@ void scm_unregister_thread() {
  * scm_block_thread() is called when a thread blocks to notify the system about it
  */
 void scm_block_thread() {
+
+    //assert: we do not have the descriptor_roots lock
     lock_global_time();
     number_of_threads--;
     
@@ -560,18 +544,25 @@ void scm_block_thread() {
         descriptor_root = get_descriptor_root();
     }
 
+    //decrement ticked_threads_countdown so other threads do not have to wait
     if (global_time == descriptor_root->global_phase) {
         //we have not ticked in this global period
-        if (atomic_int_dec_and_test((int*) & ticked_threads_countdown)) {
+        if (atomic_int_dec_and_test((int*) &ticked_threads_countdown)) {
             //we are the last thread to tick and therefore need to tick globally
             if (number_of_threads == 0) {
                 ticked_threads_countdown = 1;
             } else {
                 ticked_threads_countdown = number_of_threads;
             }
+
             global_time++;
+        } else {
+            //there are other threads to tick before global time advances
         }
+    } else {
+        //we have already ticked globally in this global phase.
     }
+
     unlock_global_time();
 }
 
@@ -580,6 +571,8 @@ void scm_block_thread() {
  * notify the system about it.
  */
 void scm_resume_thread() {
+
+    //assert: we do not have the descriptor_roots lock
     lock_global_time();
 
     if (number_of_threads == 0) {
@@ -594,20 +587,22 @@ void scm_resume_thread() {
         //to avoid decrement of the ticked_threads_countdown
         descriptor_root->global_phase = global_time + 1;
     }
+
     number_of_threads++;
 
     unlock_global_time();
 }
 
 /**
- * new_descriptor_root() allocates space for the desciprot root and initializes
- * its data.
+ * new_descriptor_root() allocates space for the descriptor_root and
+ * initializes its data.
  */
 static descriptor_root_t* new_descriptor_root() {
 
     //allocate descriptor_root 0 initialized
     descriptor_root_t *descriptor_root =
-        __real_calloc(1, sizeof (descriptor_root_t));
+        __real_calloc(1, sizeof(descriptor_root_t));
+
     memset(descriptor_root, 0, sizeof(descriptor_root_t));
 
 #ifdef SCM_PRINTOVERHEAD
@@ -625,6 +620,7 @@ static descriptor_root_t* new_descriptor_root() {
         SCM_MAX_EXPIRATION_EXTENSION + 1;
     descriptor_root->locally_clocked_reg_buffer[0].not_expired_length =
         SCM_MAX_EXPIRATION_EXTENSION + 1;
+
     descriptor_root->round_robin = 1;
     descriptor_root->next_clock_index = 1;
 
@@ -632,25 +628,24 @@ static descriptor_root_t* new_descriptor_root() {
 }
 
 /**
- * lock_global_time() uses a pthread spin lock to lock the global time
- * variable.
+ * lock_global_time() uses a pthread mutex to lock the global time variable.
  */
 static inline void lock_global_time() {
 #ifdef SCM_PRINTLOCK
-    if (pthread_spin_trylock(&global_time_lock)) {
+    if (pthread_mutex_trylock(&global_time_lock)) {
         printf("thread %ld BLOCKS on global_time_lock\n", pthread_self());
-        pthread_spin_lock(&global_time_lock);
+        pthread_mutex_lock(&global_time_lock);
     }
 #else
-    pthread_spin_lock(&global_time_lock);
+    pthread_mutex_lock(&global_time_lock);
 #endif
 }
 
 /**
- * unlock_global_time() releases the spin lock for the global time variable.
+ * unlock_global_time() releases the mutex for the global time variable.
  */
 static inline void unlock_global_time() {
-    pthread_spin_unlock(&global_time_lock);
+    pthread_mutex_unlock(&global_time_lock);
 }
 
 /**
@@ -658,12 +653,12 @@ static inline void unlock_global_time() {
  */
 static inline void lock_descriptor_roots() {
 #ifdef SCM_PRINTLOCK
-    if (pthread_mutex_trylock(&terminated_descriptor_roots_mutex)) {
-        printf("thread %ld BLOCKS on lock_descriptor_roots\n", pthread_self());
-        pthread_mutex_lock(&terminated_descriptor_roots_mutex);
+    if (pthread_mutex_trylock(&terminated_descriptor_roots_lock)) {
+        printf("thread %ld BLOCKS on terminated_descriptor_roots_lock\n", pthread_self());
+        pthread_mutex_lock(&terminated_descriptor_roots_lock);
     }
 #else
-    pthread_mutex_lock(&terminated_descriptor_roots_mutex);
+    pthread_mutex_lock(&terminated_descriptor_roots_lock);
 #endif
 }
 
@@ -671,7 +666,7 @@ static inline void lock_descriptor_roots() {
  * unlock_descriptor_roots() releases the lock of the descriptor roots.
  */
 static inline void unlock_descriptor_roots() {
-    pthread_mutex_unlock(&terminated_descriptor_roots_mutex);
+    pthread_mutex_unlock(&terminated_descriptor_roots_lock);
 }
 
 /**********************************************************************/
@@ -1106,8 +1101,8 @@ void scm_tick_clock(const unsigned long clock) {
 }
 
 /**
- * scm_refresh_region() adds extension time units to the expiration time of
- * a region without taking care of other threads.
+ * scm_refresh_region() adds extension time units to
+ * the expiration time of a region.
  * In a multi-clock environment, scm_refresh refreshes
  * the region with the thread-local base clock.
  */
@@ -1175,7 +1170,6 @@ void scm_refresh_with_clock(void *ptr, unsigned int extension, const unsigned lo
     MICROBENCHMARK_DURATION("scm_refresh")
 }
 
-
 /**
  * scm_refresh_region_with_clock() refreshes a given region with a given
  * clock, which can be different from the thread-local base clock.
@@ -1226,7 +1220,5 @@ void scm_refresh_region_with_clock(const int region_id, unsigned int extension, 
 #ifdef SCM_PRINTMEM
     print_memory_consumption();
 #endif
-
-
 }
 
