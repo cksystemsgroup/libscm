@@ -1,9 +1,9 @@
-CC=gcc
+CC = gcc
 
-ODIR=build
-DDIR=dist
+OBJDIR = build
+DISTDIR = dist
 
-WRAP=-Wl,--wrap=malloc -Wl,--wrap=free -Wl,--wrap=calloc -Wl,--wrap=realloc -Wl,--wrap=malloc_usable_size
+WRAP = -Wl,--wrap=malloc -Wl,--wrap=free -Wl,--wrap=calloc -Wl,--wrap=realloc -Wl,--wrap=malloc_usable_size
 
 # for compile time options uncomment the corresponding line
 # see scm.h for a description of the options
@@ -19,28 +19,32 @@ WRAP=-Wl,--wrap=malloc -Wl,--wrap=free -Wl,--wrap=calloc -Wl,--wrap=realloc -Wl,
 # SCM:=$(SCM) -DSCM_MAKE_MICROBENCHMARKS
 # SCM:=$(SCM) -DSCM_EAGER_COLLECTION
 
-CFLAGS=$(SCM) -Wall -fPIC -g
-LFLAGS=$(CFLAGS) -lpthread
+CFLAGS := $(SCM) -Wall -fPIC -g
+LFLAGS := $(CFLAGS) -lpthread
 
 HFILES := $(wildcard *.h)
 CFILES := $(wildcard *.c)
 
-OFILES := $(patsubst %.c,$(ODIR)/%.o,$(CFILES))
+OFILES := $(patsubst %.c,$(OBJDIR)/%.o,$(CFILES))
 
-$(ODIR)/%.o : %.c $(HFILES) $(CFILES)
-	mkdir -p $(ODIR)
-	$(CC) -c $(CFLAGS) -o $@ $<
+$(OBJDIR)/%.o : %.c $(HFILES) $(CFILES)
+	$(CC) -c $(CFLAGS) $< -o $@
 
 .PHONY : libscm all clean
 
 libscm: $(OFILES)
-	mkdir -p $(DDIR)
-	$(CC) $(LFLAGS) $(WRAP) -shared -o $(DDIR)/libscm.so $(OFILES)
-	cp scm.h $(DDIR)
-	cp scm-debug.h $(DDIR)
+	mkdir -p $(DISTDIR)
+	$(CC) $(LFLAGS) $(WRAP) -shared -o $(DISTDIR)/libscm.so $(OFILES)
+	cp scm.h $(DISTDIR)
+	cp debug.h $(DISTDIR)
+
+$(OFILES): | $(OBJDIR)
+
+$(OBJDIR):
+	mkdir $(OBJDIR)
 
 all: libscm
 
 clean:
-	rm -rf $(ODIR)
-	rm -rf $(DDIR)
+	rm -rf $(OBJDIR)
+	rm -rf $(DISTDIR)
