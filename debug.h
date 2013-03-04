@@ -5,8 +5,8 @@
  * can be found in the LICENSE file.
  */
 
-#ifndef _STM_DEBUG_H
-#define	_STM_DEBUG_H
+#ifndef _DEBUG_H
+#define	_DEBUG_H
 
 #ifndef SCM_FINALIZER_TABLE_SIZE
 #define SCM_FINALIZER_TABLE_SIZE 32
@@ -29,4 +29,4 @@ int scm_register_finalizer(int(*scm_finalizer)(void*));
  */
 void scm_set_finalizer(void *ptr, int scm_finalizer_id);
 
-#endif	/* _STM_DEBUG_H */
+#endif	/* _DEBUG_H */

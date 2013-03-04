@@ -5,10 +5,6 @@
  * can be found in the LICENSE file.
  */
 
-#include <stdio.h>
-#include <sys/time.h>
-
-#include "stm.h"
 #include "meter.h"
 
 #ifdef SCM_PRINTMEM

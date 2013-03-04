@@ -9,9 +9,9 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#include "stm.h"
-#include "scm-desc.h"
-#include "regmalloc.h"
+#include "scm.h"
+#include "threads.h"
+#include "regions.h"
 #include "meter.h"
 #include "arch.h"
 

@@ -5,9 +5,9 @@
  * can be found in the LICENSE file.
  */
 
-#include "stm-debug.h"
+#include "debug.h"
 #include "arch.h"
-#include "scm-desc.h"
+#include "threads.h"
 
 //finalizer table contains function pointers;
 static int (*finalizer_table[SCM_FINALIZER_TABLE_SIZE])(void*);

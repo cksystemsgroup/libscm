@@ -8,6 +8,11 @@
 #ifndef _METER_H
 #define	_METER_H
 
+#include <stdio.h>
+#include <sys/time.h>
+
+#include "scm.h"
+
 #ifdef SCM_PRINTMEM
 
 #ifdef SCM_PRINTOVERHEAD
