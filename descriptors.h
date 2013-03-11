@@ -8,23 +8,25 @@
 #ifndef _DESCRIPTORS_H_
 #define	_DESCRIPTORS_H_
 
+#include <stdio.h>
+
+/*
+#include <unistd.h>
 #include <stdlib.h>
 #include <pthread.h>
-
 #include <errno.h>
 #include <limits.h>
+*/
 
-#include "libscm.h"
 #include "arch.h"
+#include "meter.h"
+#include "finalizer.h"
 #include "regions.h"
+#include "scm.h"
 
 #ifndef SCM_DESCRIPTORS_PER_PAGE
 #define SCM_DESCRIPTORS_PER_PAGE \
         ((SCM_DESCRIPTOR_PAGE_SIZE - 2 * sizeof(void*))/sizeof(void*))
-#endif
-
-#ifndef SCM_REGION_PAGE_FREELIST_SIZE
-#define SCM_REGION_PAGE_FREELIST_SIZE 10
 #endif
 
 /*

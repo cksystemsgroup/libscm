@@ -8,25 +8,24 @@
 #ifndef _REGIONS_H
 #define _REGIONS_H
 
+#include <stdio.h>
+
+/*
 #include <string.h>
 #include <unistd.h>
-#include <stdio.h>
 #include <stdlib.h>
+*/
 
-#include "scm.h"
-#include "meter.h"
 #include "arch.h"
-
-#ifndef REGION_PAGE_SIZE
-#define REGION_PAGE_SIZE 4096
-#endif /* REGION_PAGE_SIZE */
+#include "meter.h"
+#include "libscm.h"
 
 // The max. amount of memory that fits into a region page
 #ifndef SCM_MEMINFO
-    #define REGION_PAGE_PAYLOAD_SIZE (REGION_PAGE_SIZE - sizeof(void*))
+    #define REGION_PAGE_PAYLOAD_SIZE (SCM_REGION_PAGE_SIZE - sizeof(void*))
 #else
     #define REGION_PAGE_PAYLOAD_SIZE \
- (REGION_PAGE_SIZE - sizeof(void*) - sizeof(unsigned long))
+ (SCM_REGION_PAGE_SIZE - sizeof(void*) - sizeof(unsigned long))
 #endif
 
 /**
@@ -57,7 +56,9 @@ struct region_page_t {
  * last region page. The next_free_address pointer can never point to an 
  * address behind the last_address_in_last_page pointer.
  */
-struct region_t {
+typedef struct region region_t;
+
+struct region {
     unsigned int dc;
 
     unsigned int number_of_region_pages;

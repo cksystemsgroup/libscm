@@ -5,15 +5,7 @@
  * can be found in the LICENSE file.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-
-#include "scm.h"
-#include "threads.h"
-#include "regions.h"
-#include "meter.h"
-#include "arch.h"
+#include "descriptors.h"
 
 /**
  * Returns a descriptor page from the descriptor page
@@ -45,7 +37,7 @@ static descriptor_page_t *new_descriptor_page() {
 #endif
     }
 #ifdef SCM_PRINTMEM
-    inc_alloc_mem(sizeof(descriptor_page_t));
+    inc_allocated_mem(sizeof(descriptor_page_t));
 #endif
 
     new_page->number_of_descriptors = 0;

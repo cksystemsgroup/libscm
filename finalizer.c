@@ -43,4 +43,3 @@ int run_finalizer(object_header_t *o) {
     //run finalizer and return the result of it
     return (*finalizer)(ptr);
 }
-

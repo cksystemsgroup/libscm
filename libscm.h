@@ -8,17 +8,14 @@
 #ifndef _LIBSCM_H_
 #define	_LIBSCM_H_
 
+/*
 #include <stddef.h>
 #include <stdio.h>
 #include <pthread.h>
 #include <string.h>
 #include <fcntl.h>
 #include <sys/mman.h>
-
-#include "scm.h"
-#include "regions.h"
-#include "meter.h"
-#include "arch.h"
+*/
 
 /*
  * one may use the following compile time configuration for libscm.
@@ -73,6 +70,10 @@
 
 #ifndef SCM_DESCRIPTOR_PAGE_FREELIST_SIZE
 #define SCM_DESCRIPTOR_PAGE_FREELIST_SIZE 10
+#endif
+
+#ifndef SCM_REGION_PAGE_SIZE
+#define SCM_REGION_PAGE_SIZE 4096
 #endif
 
 #ifndef SCM_REGION_PAGE_FREELIST_SIZE

@@ -8,11 +8,14 @@
 #ifndef _SCM_H_
 #define	_SCM_H_
 
+#include <stdio.h>
+
+/*
 #include <stdlib.h>
 #include <pthread.h>
-
 #include <errno.h>
 #include <limits.h>
+*/
 
 #include "libscm.h"
 #include "arch.h"

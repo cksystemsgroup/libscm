@@ -127,7 +127,7 @@ void* scm_malloc_in_region(size_t size, const int region_index) {
         }
 #ifdef SCM_DEBUG
         printf("Page is full\n Creating new page...");
-        printf("[new_region_page (%u)]\n", REGION_PAGE_SIZE);
+        printf("[new_region_page (%u)]\n", SCM_REGION_PAGE_SIZE);
 #endif
         // allocate new page
         region_page_t* page = init_region_page(region);
@@ -229,7 +229,7 @@ static region_page_t* init_region_page(region_t* region) {
 #endif
     }
     else {
-        new_page = __real_malloc(REGION_PAGE_SIZE);
+        new_page = __real_malloc(SCM_REGION_PAGE_SIZE);
 
 #ifdef SCM_PRINTMEM
         inc_allocated_mem(bytes);
@@ -240,7 +240,7 @@ static region_page_t* init_region_page(region_t* region) {
             exit(-1);
         }
     }
-    memset(new_page, 0, REGION_PAGE_SIZE);
+    memset(new_page, 0, SCM_REGION_PAGE_SIZE);
 
     if (prevLastPage != NULL) {
         prevLastPage->nextPage = new_page;
@@ -502,7 +502,7 @@ static void recycle_region(region_t* region) {
         region_page_t* firstPage = region->firstPage;
         legacy_pages = firstPage->nextPage;
 
-        memset(firstPage, 0, REGION_PAGE_SIZE);
+        memset(firstPage, 0, SCM_REGION_PAGE_SIZE);
         region->last_address_in_last_page =
         		(unsigned long)&firstPage->memory + REGION_PAGE_PAYLOAD_SIZE-1;
 
@@ -619,7 +619,7 @@ static void recycle_region(region_t* region) {
         unsigned long pooled_memory;
 
         while(p != NULL) {
-        	inc_pooled_mem(REGION_PAGE_SIZE);
+        	inc_pooled_mem(SCM_REGION_PAGE_SIZE);
             dec_needed_mem(p->used_memory);
         	p = p->nextPage;
         }
@@ -676,7 +676,7 @@ static void recycle_region(region_t* region) {
 						number_of_recycle_region_pages - 1;
 
 #ifdef SCM_PRINTMEM
-				inc_pooled_mem(number_of_recycle_region_pages * REGION_PAGE_SIZE);
+				inc_pooled_mem(number_of_recycle_region_pages * SCM_REGION_PAGE_SIZE);
 #endif
 			}
 		}
