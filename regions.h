@@ -25,7 +25,7 @@
     #define REGION_PAGE_PAYLOAD_SIZE (SCM_REGION_PAGE_SIZE - sizeof(void*))
 #else
     #define REGION_PAGE_PAYLOAD_SIZE \
- (SCM_REGION_PAGE_SIZE - sizeof(void*) - sizeof(unsigned long))
+       (SCM_REGION_PAGE_SIZE - sizeof(void*) - sizeof(unsigned long))
 #endif
 
 /**

@@ -19,7 +19,7 @@
  * a region_page is created and initialized.
  */
 const int scm_create_region() {
-    if(descriptor_root == NULL) {
+    if (descriptor_root == NULL) {
         descriptor_root = get_descriptor_root();
     }
 
@@ -190,13 +190,6 @@ void* scm_malloc_in_region(size_t size, const int region_index) {
 
     return PAYLOAD_OFFSET(new_obj);
 }
-
-/**
- * Creates and initializes a new region page if no other
- * region page exists or if all other region pages are full.
- * The region_page is allocated page-aligned.
- */
-static region_page_t* init_region_page(region_t* region);
 
 /**
  * init_region_page() creates and initializes a new region page if no other
@@ -448,28 +441,12 @@ void scm_unregister_region(const int region) {
  * it from regions which have not yet been used.
  * This indicates how many not-yet-used regions
  * are available.
- * Returns if no or just one region_page
- * has been allocated in the region.
- */
-static void recycle_region(region_t* region);
-
-/**
- * Recycles a region in O(1) by pooling
- * the list of free region_pages except the
- * first region page iff the region_page_pool
- * limit is not exceeded, otherwise the region_pages
- * except the first one are deallocated and
- * the memory is handed back to the OS in O(n),
- * n = amount of region pages - 1.
- *
- * The remaining first region page indicates that the region
- * once existed, which is necessary to differentiate
- * it from regions which have not yet been used.
- * This indicates how many not-yet-used regions
- * are available.
  *
  * If the region was unregistered, all region pages
  * are recycled or deallocated.
+ *
+ * Returns if no or just one region_page
+ * has been allocated in the region.
  */
 static void recycle_region(region_t* region) {
 

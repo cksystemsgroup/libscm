@@ -17,9 +17,8 @@
 #include <limits.h>
 */
 
-#include "libscm.h"
 #include "arch.h"
-#include "regions.h"
+#include "descriptors.h"
 
 #ifdef SCM_MT_DEBUG
 #define printf printf("%lu: ", pthread_self());printf

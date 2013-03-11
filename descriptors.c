@@ -206,7 +206,7 @@ void insert_descriptor(void* ptr, descriptor_buffer_t *buffer,
     //insert in the last page
     descriptor_page_t *page = list->last;
 
-    if (page->number_of_descriptors == SCM_DESCRIPTORS_PER_PAGE) {
+    if (page->number_of_descriptors == DESCRIPTORS_PER_PAGE) {
         //page is full. create new page and append to end of list
     	page = new_descriptor_page();
         list->last->next = page;

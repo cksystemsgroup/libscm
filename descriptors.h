@@ -22,10 +22,10 @@
 #include "meter.h"
 #include "finalizer.h"
 #include "regions.h"
-#include "scm.h"
+#include "libscm.h"
 
-#ifndef SCM_DESCRIPTORS_PER_PAGE
-#define SCM_DESCRIPTORS_PER_PAGE \
+#ifndef DESCRIPTORS_PER_PAGE
+#define DESCRIPTORS_PER_PAGE \
         ((SCM_DESCRIPTOR_PAGE_SIZE - 2 * sizeof(void*))/sizeof(void*))
 #endif
 
@@ -38,7 +38,7 @@ typedef struct descriptor_page descriptor_page_t;
 struct descriptor_page {
     descriptor_page_t *next;
     unsigned long number_of_descriptors;
-    object_header_t* descriptors[SCM_DESCRIPTORS_PER_PAGE];
+    object_header_t* descriptors[DESCRIPTORS_PER_PAGE];
 };
 
 /* 

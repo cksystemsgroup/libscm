@@ -25,9 +25,6 @@ static descriptor_root_t *terminated_descriptor_roots = NULL;
 //protects the data structures of terminated threads
 static pthread_mutex_t terminated_descriptor_roots_lock = PTHREAD_MUTEX_INITIALIZER;
 
-//thread-local storage
-__thread descriptor_root_t* descriptor_root;
-
 static inline void lock_global_time();
 static inline void unlock_global_time();
 static inline void lock_descriptor_roots();

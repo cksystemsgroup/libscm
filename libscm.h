@@ -80,11 +80,6 @@
 #define SCM_REGION_PAGE_FREELIST_SIZE 10
 #endif
 
-#ifdef SCM_TEST
-typedef struct descriptor_root descriptor_root_t;
-extern descriptor_root_t* get_descriptor_root(void);
-#endif
-
 /**
  * scm_create_region() returns a const integer representing a new region index
  * if available and -1 otherwise. The new region is detected by scanning
