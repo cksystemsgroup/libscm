@@ -8,7 +8,6 @@
 #include "meter.h"
 
 #ifdef SCM_PRINTMEM
-#include <malloc.h>
 
 #ifdef SCM_PRINTOVERHEAD
 static long mem_overhead = 0 ;
@@ -30,7 +29,7 @@ static long num_alloc = 0;
 /**
  * Keeps track of the allocated memory
  */
-void inc_allocated_mem(int inc) {
+void inc_allocated_mem(long inc) {
     //alloc_mem += inc;
     __sync_add_and_fetch(&alloc_mem, inc);
     __sync_add_and_fetch(&num_alloc, 1);
@@ -42,7 +41,7 @@ static long num_freed = 0;
 /**
  * Keeps track of the freed memory
  */
-void inc_freed_mem(int inc) {
+void inc_freed_mem(long inc) {
     //freed_mem += inc;
     __sync_add_and_fetch(&freed_mem, inc);
     __sync_add_and_fetch(&num_freed, 1);
@@ -99,22 +98,21 @@ void print_memory_consumption() {
         start_time = usec;
     }
 
-    struct mallinfo info = mallinfo();
+    // struct mallinfo info = mallinfo();
 
-    if (mem_meter_enabled != 0) {
-        long used = alloc_mem - pooled_mem;
-        long needed = needed_mem - not_needed_mem;
+    long used = alloc_mem - pooled_mem;
+    long needed = needed_mem - not_needed_mem;
 
-        if (needed < 0)
-            needed = 0;
+    if (needed < 0)
+        needed = 0;
 
-        printf("memusage:\t%lu\t%d\t%d\t%d\t%d\n", usec - start_time, alloc_mem - freed_mem, pooled_mem, used, needed);
+    printf("memusage:\t%lu\t%ld\t%ld\t%ld\t%ld\n", usec - start_time, alloc_mem - freed_mem, pooled_mem, used, needed);
 
 #ifdef SCM_PRINTOVERHEAD
-        printf("memoverhead:\t%lu\t%lu\n", usec - start_time, mem_overhead);
+    printf("memoverhead:\t%lu\t%lu\n", usec - start_time, mem_overhead);
 #endif //SCM_PRINTOVERHEAD
 
-        printf("mallinfo:\t%lu\t%d\n", usec - start_time, info.uordblks);
-    }
+    // printf("mallinfo:\t%lu\t%d\n", usec - start_time, info.uordblks);
 }
-#endif
+
+#endif  /* SCM_PRINTMEM */

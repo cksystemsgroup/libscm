@@ -5,17 +5,17 @@
  * can be found in the LICENSE file.
  */
 
-#ifndef _ARCH_H
-#define	_ARCH_H
+#ifndef _ARCH_H_
+#define	_ARCH_H_
 
-#define atomic_int_inc(atomic) (atomic_int_add ((atomic), 1))
-#define atomic_int_dec_and_test(atomic)				\
-  (atomic_int_exchange_and_add ((atomic), -1) == 1)
+#define atomic_int_inc(atomic) (atomic_int_add((atomic), 1))
+
+#define atomic_int_dec_and_test(atomic)	\
+ (atomic_int_exchange_and_add((atomic), -1) == 1)
 
 static inline void toggle_bit_at_pos(int *bitmap, int pos) {
     *bitmap = *bitmap ^ (1 << pos);
 }
-
 
 #if defined __i386__ || defined __x86_64__
 
@@ -96,4 +96,4 @@ static inline int atomic_int_compare_and_exchange(volatile int *atomic,
 
 #endif /* defined __i386__ || defined __x86_64__ */
 
-#endif	/* _ARCH_H */
+#endif	/* _ARCH_H_ */

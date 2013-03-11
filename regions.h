@@ -14,7 +14,6 @@
 #include <stdlib.h>
 
 #include "scm.h"
-#include "threads.h"
 #include "meter.h"
 #include "arch.h"
 

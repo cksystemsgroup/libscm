@@ -5,8 +5,8 @@
  * can be found in the LICENSE file.
  */
 
-#ifndef _METER_H
-#define	_METER_H
+#ifndef _METER_H_
+#define	_METER_H_
 
 #include <stdio.h>
 #include <sys/time.h>
@@ -50,7 +50,8 @@ void inc_not_needed_mem(long inc);
  * prints the memory consumption for needed and allocated memory
  */
 void print_memory_consumption(void);
-#endif
 
-#endif	/* _METER_H */
+#endif  /* SCM_PRINTMEM */
+
+#endif	/* _METER_H_ */
 

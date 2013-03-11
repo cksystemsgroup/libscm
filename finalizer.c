@@ -5,9 +5,7 @@
  * can be found in the LICENSE file.
  */
 
-#include "debug.h"
-#include "arch.h"
-#include "threads.h"
+#include "finalizer.h"
 
 //finalizer table contains function pointers;
 static int (*finalizer_table[SCM_FINALIZER_TABLE_SIZE])(void*);
@@ -21,6 +19,7 @@ int scm_register_finalizer(int(*scm_finalizer)(void*)) {
     if (index >= SCM_FINALIZER_TABLE_SIZE) return -1; //error, table full
 
     finalizer_table[index] = scm_finalizer;
+
     return index;
 }
 

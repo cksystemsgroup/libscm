@@ -13,7 +13,7 @@ WRAP = -Wl,--wrap=malloc -Wl,--wrap=free -Wl,--wrap=calloc -Wl,--wrap=realloc -W
 # SCM:=$(SCM) -DSCM_MAX_EXPIRATION_EXTENSION=10
 # SCM:=$(SCM) -DSCM_DEBUG
 # SCM:=$(SCM) -DSCM_MT_DEBUG
-# SCM:=$(SCM) -DSCM_PRINTMEM
+SCM:=$(SCM) -DSCM_PRINTMEM
 # SCM:=$(SCM) -DSCM_PRINTOVERHEAD
 # SCM:=$(SCM) -DSCM_PRINTLOCK
 # SCM:=$(SCM) -DSCM_MAKE_MICROBENCHMARKS
@@ -28,15 +28,14 @@ CFILES := $(wildcard *.c)
 OFILES := $(patsubst %.c,$(OBJDIR)/%.o,$(CFILES))
 
 $(OBJDIR)/%.o : %.c $(HFILES) $(CFILES)
-	$(CC) -c $(CFLAGS) $< -o $@
+	$(CC) $(CFLAGS) -c $< -o $@
 
 .PHONY : libscm all clean
 
 libscm: $(OFILES)
 	mkdir -p $(DISTDIR)
 	$(CC) $(LFLAGS) $(WRAP) $(OFILES) -shared -o $(DISTDIR)/libscm.so
-	cp scm.h $(DISTDIR)
-	cp debug.h $(DISTDIR)
+	cp libscm.h $(DISTDIR)
 
 $(OFILES): | $(OBJDIR)
 
