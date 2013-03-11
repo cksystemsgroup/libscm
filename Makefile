@@ -34,7 +34,7 @@ $(OBJDIR)/%.o : %.c $(HFILES) $(CFILES)
 
 libscm: $(OFILES)
 	mkdir -p $(DISTDIR)
-	$(CC) $(LFLAGS) $(WRAP) -shared -o $(DISTDIR)/libscm.so $(OFILES)
+	$(CC) $(LFLAGS) $(WRAP) $(OFILES) -shared -o $(DISTDIR)/libscm.so
 	cp scm.h $(DISTDIR)
 	cp debug.h $(DISTDIR)
 

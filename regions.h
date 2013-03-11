@@ -35,6 +35,8 @@
  * and a chunk of memory for allocating memory objects.
  * region_page is allocated page-aligned.
  */
+typedef struct region_page region_page_t;
+
 struct region_page_t {
     region_page_t* nextPage;
     

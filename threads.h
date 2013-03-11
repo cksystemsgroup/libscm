@@ -77,7 +77,9 @@ extern size_t __real_malloc_usable_size(void *ptr);
  * -------------------------
  *
  */
-struct object_header_t {
+typedef struct object_header object_header_t;
+
+struct object_header {
     // Depending on whether the region-based allocator is
     // used or not, the following field will be positive or negative.
     // A negative value indicates region allocation. Resetting the
@@ -97,7 +99,9 @@ struct object_header_t {
  * A chunk of contiguous memory that holds descriptors with the same
  * expiration date.
  */
-struct descriptor_page_t {
+typedef struct descriptor_page descriptor_page_t;
+
+struct descriptor_page {
     descriptor_page_t *next;
     unsigned long number_of_descriptors;
     object_header_t* descriptors[SCM_DESCRIPTORS_PER_PAGE];
@@ -106,7 +110,9 @@ struct descriptor_page_t {
 /* 
  * singly-linked list of descriptor pages
  */
-struct descriptor_page_list_t {
+typedef struct descriptor_page_list descriptor_page_list_t;
+
+struct descriptor_page_list {
     descriptor_page_t* first;
     descriptor_page_t* last;
 };
@@ -114,7 +120,9 @@ struct descriptor_page_list_t {
 /*
  * singly-linked list of expired descriptor pages
  */
-struct expired_descriptor_page_list_t {
+typedef struct expired_descriptor_page_list expired_descriptor_page_list_t;
+
+struct expired_descriptor_page_list {
     descriptor_page_t* first;
     descriptor_page_t* last;
     unsigned long collected;
@@ -136,7 +144,9 @@ struct expired_descriptor_page_list_t {
  * page_lists but the locally clocked buffer uses only
  * SCM_MAX_EXPIRATION_EXTENSION + 1 slots
  */
-struct descriptor_buffer_t {
+typedef struct descriptor_buffer descriptor_buffer_t;
+
+struct descriptor_buffer {
     descriptor_page_list_t not_expired[SCM_MAX_EXPIRATION_EXTENSION + 2];
 
     // The field not_expired_length may have the following values:
@@ -157,20 +167,13 @@ struct descriptor_buffer_t {
     unsigned int age;
 };
 
-#ifndef SCM_TEST
-descriptor_root_t *get_descriptor_root(void)
-    __attribute__((visibility("hidden")));
-#endif
-
-// The descriptor root is stored as thread-local storage variable.
-// According to perf tools from google __thread is faster than pthread_getspecific().
-extern __thread descriptor_root_t* descriptor_root;
-
 /**
  * Descriptor root holds thread-local data for descriptor
  * and region management.
  */
-struct descriptor_root_t {
+typedef struct descriptor_root descriptor_root_t;
+
+struct descriptor_root {
     // global_phase indicates if the thread has already ticked in the current 
     // global phase. A global phase is the interval between two increments of
     // the global clock (global_time).
@@ -219,6 +222,10 @@ struct descriptor_root_t {
     // This is only used after the thread terminated.
     descriptor_root_t *next;
 };
+
+// The descriptor root is stored as thread-local storage variable.
+// According to perf tools from google __thread is faster than pthread_getspecific().
+extern __thread descriptor_root_t* descriptor_root;
 
 /* expire_reg_descriptor_if_exists()
  * expires object descriptors */
