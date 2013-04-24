@@ -80,6 +80,14 @@
 #define SCM_REGION_PAGE_FREELIST_SIZE 10
 #endif
 
+#ifndef SCM_MAX_REGIONS
+#define SCM_MAX_REGIONS 10
+#endif
+
+#ifndef SCM_MAX_CLOCKS
+#define SCM_MAX_CLOCKS 10
+#endif
+
 /**
  * scm_create_region() returns a const integer representing a new region index
  * if available and -1 otherwise. The new region is detected by scanning

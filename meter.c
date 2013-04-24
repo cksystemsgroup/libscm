@@ -62,30 +62,10 @@ void dec_pooled_mem(long inc) {
     __sync_sub_and_fetch(&pooled_mem, inc);
 }
 
-static long needed_mem = 0;
-
-/**
- * Keeps track of the needed memory
- */
-void inc_needed_mem(long inc) {
-    //needed_mem += inc;
-    __sync_add_and_fetch(&needed_mem, inc);
-}
-
-static long not_needed_mem = 0;
-
-/**
- * Keeps track of the not-needed memory
- */
-void inc_not_needed_mem(long inc) {
-    //not_needed_mem += inc;
-    __sync_add_and_fetch(&not_needed_mem, inc);
-}
-
 static long start_time = 0;
 
 /**
- * prints the memory consumption for needed and allocated memory
+ * prints the memory consumption for total, pooled, and used memory
  */
 void print_memory_consumption() {
     struct timeval t;
@@ -100,13 +80,7 @@ void print_memory_consumption() {
 
     // struct mallinfo info = mallinfo();
 
-    long used = alloc_mem - pooled_mem;
-    long needed = needed_mem - not_needed_mem;
-
-    if (needed < 0)
-        needed = 0;
-
-    printf("memusage:\t%lu\t%ld\t%ld\t%ld\t%ld\n", usec - start_time, alloc_mem - freed_mem, pooled_mem, used, needed);
+    printf("memusage:\t%lu\t%ld\t%ld\t%ld\n", usec - start_time, alloc_mem - freed_mem, pooled_mem, alloc_mem - pooled_mem);
 
 #ifdef SCM_PRINTOVERHEAD
     printf("memoverhead:\t%lu\t%lu\n", usec - start_time, mem_overhead);

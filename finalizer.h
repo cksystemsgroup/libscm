@@ -9,7 +9,7 @@
 #define	_FINALIZER_H_
 
 #include "arch.h"
-#include "scm.h"
+#include "object.h"
 
 #ifndef SCM_FINALIZER_TABLE_SIZE
 #define SCM_FINALIZER_TABLE_SIZE 32
