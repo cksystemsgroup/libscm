@@ -9,15 +9,6 @@
 #define	_LIBSCM_H_
 
 /*
-#include <stddef.h>
-#include <stdio.h>
-#include <pthread.h>
-#include <string.h>
-#include <fcntl.h>
-#include <sys/mman.h>
-*/
-
-/*
  * one may use the following compile time configuration for libscm.
  * See Makefile for different configurations
  *

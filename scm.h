@@ -13,16 +13,13 @@
 #include <pthread.h>
 #include <limits.h>
 
-//#include <stdlib.h>
-//#include <errno.h>
-
 #include "arch.h"
 #include "object.h"
 #include "descriptors.h"
 #include "libscm.h"
 
 #ifdef SCM_MT_DEBUG
-#define printf printf("%lu: ", pthread_self());printf
+#define printf printf("%p: ", pthread_self());printf
 #endif
 
 #ifdef SCM_MAKE_MICROBENCHMARKS

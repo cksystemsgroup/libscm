@@ -659,7 +659,7 @@ static descriptor_root_t* new_descriptor_root() {
 static inline void lock_global_time() {
 #ifdef SCM_PRINTLOCK
     if (pthread_mutex_trylock(&global_time_lock)) {
-        printf("thread %ld BLOCKS on global_time_lock\n", pthread_self());
+        printf("thread %p BLOCKS on global_time_lock\n", pthread_self());
         pthread_mutex_lock(&global_time_lock);
     }
 #else
@@ -680,7 +680,7 @@ static inline void unlock_global_time() {
 static inline void lock_descriptor_roots() {
 #ifdef SCM_PRINTLOCK
     if (pthread_mutex_trylock(&terminated_descriptor_roots_lock)) {
-        printf("thread %ld BLOCKS on terminated_descriptor_roots_lock\n", pthread_self());
+        printf("thread %p BLOCKS on terminated_descriptor_roots_lock\n", pthread_self());
         pthread_mutex_lock(&terminated_descriptor_roots_lock);
     }
 #else
