@@ -21,7 +21,7 @@ static descriptor_page_t *new_descriptor_page() {
         new_page = descriptor_root->descriptor_page_pool
                    [descriptor_root->number_of_pooled_descriptor_pages];
 
-#ifdef SCM_PRINTMEM
+#ifdef SCM_RECORD_MEMORY_USAGE
         dec_pooled_mem(sizeof(descriptor_page_t));
 #endif
     } else {
@@ -32,11 +32,11 @@ static descriptor_page_t *new_descriptor_page() {
             return NULL;
         }
 
-#ifdef SCM_PRINTOVERHEAD
+#ifdef SCM_RECORD_MEMORY_USAGE
         inc_overhead(__real_malloc_usable_size(new_page));
 #endif
     }
-#ifdef SCM_PRINTMEM
+#ifdef SCM_RECORD_MEMORY_USAGE
     inc_allocated_mem(__real_malloc_usable_size(new_page));
 #endif
 
@@ -55,15 +55,12 @@ static inline void recycle_descriptor_page(descriptor_page_t *page) {
     
         descriptor_root->number_of_pooled_descriptor_pages++;
 
-#ifdef SCM_PRINTMEM
+#ifdef SCM_RECORD_MEMORY_USAGE
         inc_pooled_mem(sizeof(descriptor_page_t));
 #endif
     } else {
-#ifdef SCM_PRINTOVERHEAD
+#ifdef SCM_RECORD_MEMORY_USAGE
         dec_overhead(__real_malloc_usable_size(page));
-#endif
-
-#ifdef SCM_PRINTMEM
         inc_freed_mem(__real_malloc_usable_size(page));
 #endif
 
@@ -164,11 +161,8 @@ int expire_object_descriptor_if_exists(expired_descriptor_page_list_t *list) {
                    (unsigned long) PAYLOAD_OFFSET(expired_object));
 #endif
 
-#ifdef SCM_PRINTOVERHEAD
-            dec_overhead(sizeof (object_header_t));
-#endif
-
-#ifdef SCM_PRINTMEM
+#ifdef SCM_RECORD_MEMORY_USAGE
+            dec_overhead(sizeof(object_header_t));
             inc_freed_mem(__real_malloc_usable_size(expired_object));
 #endif
             __real_free(expired_object);
@@ -427,20 +421,14 @@ static void recycle_region(region_t* region) {
             SCM_REGION_PAGE_FREELIST_SIZE) {
         //..yes, there is space in the region page pool
 
-#ifdef SCM_PRINTMEM
+#ifdef SCM_RECORD_MEMORY_USAGE
         region_page_t* p = legacy_pages;
 
         while(p != NULL) {
             inc_pooled_mem(SCM_REGION_PAGE_SIZE);
+            inc_overhead(__real_malloc_usable_size(p));
+
             p = p->nextPage;
-        }
-#endif
-#ifdef SCM_PRINTOVERHEAD
-        region_page_t* p2 = legacy_pages;
-        
-        while(p2 != NULL) {
-            inc_overhead(__real_malloc_usable_size(p2));
-            p2 = p2->nextPage;
         }
 #endif
 
@@ -465,7 +453,7 @@ static void recycle_region(region_t* region) {
             region_page_t* next = page2free->nextPage;
             __real_free(page2free);
 
-#ifdef SCM_PRINTMEM
+#ifdef SCM_RECORD_MEMORY_USAGE
             inc_freed_mem(SCM_REGION_PAGE_SIZE);
 #endif
 
@@ -488,7 +476,7 @@ static void recycle_region(region_t* region) {
                 descriptor_root->number_of_pooled_region_pages =
                         number_of_recycle_region_pages - 1;
 
-#ifdef SCM_PRINTMEM
+#ifdef SCM_RECORD_MEMORY_USAGE
                 inc_pooled_mem(number_of_recycle_region_pages * SCM_REGION_PAGE_SIZE);
 #endif
             }

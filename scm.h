@@ -13,14 +13,11 @@
 #include <pthread.h>
 #include <limits.h>
 
+#include "debug.h"
 #include "arch.h"
 #include "object.h"
 #include "descriptors.h"
 #include "libscm.h"
-
-#ifdef SCM_MT_DEBUG
-#define printf printf("%p: ", pthread_self());printf
-#endif
 
 #ifdef SCM_MAKE_MICROBENCHMARKS
 #define MICROBENCHMARK_START unsigned long long _mb_start = rdtsc();

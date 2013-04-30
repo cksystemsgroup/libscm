@@ -7,17 +7,15 @@
 
 #include "scm.h"
 
-#ifdef SCM_PRINTMEM
-//#include <malloc.h>
-#endif //SCM_PRINTMEM
-
 static long global_time = 0;
+
+//the number of threads registered for global time advance
 static unsigned int number_of_threads = 0;
 
 //the number of threads, that have not yet ticked in a global period
 static unsigned int ticked_threads_countdown = 1;
 
-//protects global_time, number_of_threads and ticked_threads_countdown
+//protects global_time, number_of_threads, and ticked_threads_countdown
 static pthread_mutex_t global_time_lock = PTHREAD_MUTEX_INITIALIZER;
 
 static descriptor_root_t *terminated_descriptor_roots = NULL;
@@ -72,12 +70,10 @@ void *__wrap_malloc(size_t size) {
     object->dc_or_region_id = 0;
     object->finalizer_index = -1;
 
-#ifdef SCM_PRINTOVERHEAD
+#ifdef SCM_RECORD_MEMORY_USAGE
     inc_overhead(sizeof(object_header_t));
-#endif
-
-#ifdef SCM_PRINTMEM
     inc_allocated_mem(__real_malloc_usable_size(object));
+
     print_memory_consumption();
 #endif
 
@@ -85,7 +81,7 @@ void *__wrap_malloc(size_t size) {
 }
 
 inline void *scm_malloc(size_t size) {
-    return __wrap_malloc(size);
+    return __wrap_malloc_internal(size);
 }
 
 void *__wrap_calloc(size_t nelem, size_t elsize) {
@@ -114,7 +110,7 @@ void *__wrap_realloc(void *ptr, size_t size) {
     new_object->dc_or_region_id = 0;
     new_object->finalizer_index = -1;
 
-#ifdef SCM_PRINTOVERHEAD
+#ifdef SCM_RECORD_MEMORY_USAGE
     inc_overhead(sizeof(object_header_t));
 #endif
 
@@ -138,18 +134,16 @@ void *__wrap_realloc(void *ptr, size_t size) {
 
     if (old_object->dc_or_region_id == 0) {
         //if the old object has no descriptors, we can free it
-#ifdef SCM_PRINTMEM
-        inc_freed_mem(__real_malloc_usable_size(old_object));
-#endif
 
-#ifdef SCM_PRINTOVERHEAD
+#ifdef SCM_RECORD_MEMORY_USAGE
+        inc_freed_mem(__real_malloc_usable_size(old_object));
         dec_overhead(sizeof(object_header_t));
 #endif
 
         __real_free(old_object);
     } //else: the old object will be freed later due to expiration
 
-#ifdef SCM_PRINTMEM
+#ifdef SCM_RECORD_MEMORY_USAGE
     inc_allocated_mem(__real_malloc_usable_size(new_object));
     print_memory_consumption();
 #endif
@@ -167,10 +161,8 @@ void __wrap_free(void *ptr) {
     object_header_t *object = OBJECT_HEADER(ptr);
 
     if (object->dc_or_region_id == 0) {
-#ifdef SCM_PRINTOVERHEAD
+#ifdef SCM_RECORD_MEMORY_USAGE
         dec_overhead(sizeof(object_header_t));
-#endif
-#ifdef SCM_PRINTMEM
         inc_freed_mem(__real_malloc_usable_size(object));
 #endif
 
@@ -293,7 +285,7 @@ void scm_global_tick(void) {
     scm_lazy_collect();
 #endif
 
-#ifdef SCM_PRINTMEM
+#ifdef SCM_RECORD_MEMORY_USAGE
     print_memory_consumption();
 #endif
     MICROBENCHMARK_STOP
@@ -389,7 +381,7 @@ void scm_global_refresh(void *ptr, unsigned int extension) {
         //do nothing. expired descriptors are collected at tick
 #endif
 
-#ifdef SCM_PRINTMEM
+#ifdef SCM_RECORD_MEMORY_USAGE
         print_memory_consumption();
 #endif
         MICROBENCHMARK_STOP
@@ -431,7 +423,7 @@ void scm_global_refresh_region(const int region_id, unsigned int extension) {
     //do nothing. expired descriptors are collected at tick
 #endif
 
-#ifdef SCM_PRINTMEM
+#ifdef SCM_RECORD_MEMORY_USAGE
     print_memory_consumption();
 #endif
     MICROBENCHMARK_STOP
@@ -495,7 +487,7 @@ void scm_refresh_region_with_clock(const int region_id, unsigned int extension, 
     //do nothing. expired descriptors are collected at tick
 #endif
 
-#ifdef SCM_PRINTMEM
+#ifdef SCM_RECORD_MEMORY_USAGE
     print_memory_consumption();
 #endif
 }
@@ -631,10 +623,8 @@ static descriptor_root_t* new_descriptor_root() {
 
     memset(descriptor_root, '\0', sizeof(descriptor_root_t));
 
-#ifdef SCM_PRINTOVERHEAD
+#ifdef SCM_RECORD_MEMORY_USAGE
     inc_overhead(__real_malloc_usable_size(descriptor_root));
-#endif
-#ifdef SCM_PRINTMEM
     inc_allocated_mem(__real_malloc_usable_size(descriptor_root));
 #endif
 
@@ -657,7 +647,7 @@ static descriptor_root_t* new_descriptor_root() {
  * lock_global_time() uses a pthread mutex to lock the global time variable.
  */
 static inline void lock_global_time() {
-#ifdef SCM_PRINTLOCK
+#ifdef SCM_PRINT_BLOCKING
     if (pthread_mutex_trylock(&global_time_lock)) {
         printf("thread %p BLOCKS on global_time_lock\n", pthread_self());
         pthread_mutex_lock(&global_time_lock);
@@ -678,7 +668,7 @@ static inline void unlock_global_time() {
  * lock_descriptor_roots() locks the descriptor roots.
  */
 static inline void lock_descriptor_roots() {
-#ifdef SCM_PRINTLOCK
+#ifdef SCM_PRINT_BLOCKING
     if (pthread_mutex_trylock(&terminated_descriptor_roots_lock)) {
         printf("thread %p BLOCKS on terminated_descriptor_roots_lock\n", pthread_self());
         pthread_mutex_lock(&terminated_descriptor_roots_lock);
@@ -843,7 +833,7 @@ void scm_tick_clock(const unsigned long clock) {
     scm_lazy_collect();
 #endif
 
-#ifdef SCM_PRINTMEM
+#ifdef SCM_RECORD_MEMORY_USAGE
     print_memory_consumption();
 #endif
 
@@ -933,7 +923,7 @@ static region_page_t* init_region_page(region_t* region) {
 
         descriptor_root->region_page_pool = new_page->nextPage;
         descriptor_root->number_of_pooled_region_pages--;
-#ifdef SCM_PRINTMEM
+#ifdef SCM_RECORD_MEMORY_USAGE
         dec_pooled_mem(sizeof (region_page_t));
 #endif
     }
@@ -945,14 +935,12 @@ static region_page_t* init_region_page(region_t* region) {
             exit(-1);
         }
 
-#ifdef SCM_PRINTOVERHEAD
+#ifdef SCM_RECORD_MEMORY_USAGE
         inc_overhead(__real_malloc_usable_size(new_page) - SCM_REGION_PAGE_PAYLOAD_SIZE);
-#endif
-
-#ifdef SCM_PRINTMEM
         inc_allocated_mem(__real_malloc_usable_size(new_page));
 #endif
     }
+
     memset(new_page, '\0', SCM_REGION_PAGE_SIZE);
 
     if (prevLastPage != NULL) {

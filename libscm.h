@@ -9,30 +9,30 @@
 #define	_LIBSCM_H_
 
 /*
- * one may use the following compile time configuration for libscm.
- * See Makefile for different configurations
- *
- * check pre-/post-conditions on scm functions
- * #define SCM_TEST
+ * One may use the following compile time configuration for libscm.
+ * See Makefile for different configurations.
  *
  * turn on debug messages
  * #define SCM_DEBUG
  *
- * add thread id to debug messages
- * #define SCM_MT_DEBUG
+ * add thread id to output messages
+ * #define SCM_DEBUG_THREADS
  *
- * print memory consumption after memory operations
- * #define SCM_PRINTMEM
+ * check pre-/post-conditions
+ * #define SCM_CHECK_CONDITIONS
  *
- * print bookkeeping memory overhead,
- * works only in addition with SCM_PRINTMEM
- * #define SCM_PRINTOVERHEAD
+ * record and output memory consumption
+ * #define SCM_RECORD_MEMORY_USAGE
  *
  * print information if contention on locks happened
- * #define SCM_PRINTLOCK
+ * #define SCM_PRINT_BLOCKING
  *
- * the maximal expiration extension allowed on the scm_refresh calls
- * #define SCM_MAX_EXPIRATION_EXTENSION 5
+ * print the number of cpu cycles for each public function. Make sure to NOT
+ * enable any other debug options together with SCM_MAKE_MICROBENCHMARKS
+ * #define SCM_MAKE_MICROBENCHMARKS
+ *
+ * turn on eager collection
+ * #define SCM_EAGER_COLLECTION
  *
  * the size of the descriptor pages. this should be a power of two and a
  * multiple of sizeof(void*)
@@ -43,9 +43,9 @@
  * an upper bound on the number of descriptor pages that are cached
  * #define SCM_DESCRIPTOR_PAGE_FREELIST_SIZE 10
  *
- * print the number of cpu cycles for each public function. Make sure to NOT
- * enable any other debug options together with SCM_MAKE_MICROBENCHMARKS
- * #define SCM_MAKE_MICROBENCHMARKS
+ * the maximal expiration extension allowed on the scm_refresh calls
+ * #define SCM_MAX_EXPIRATION_EXTENSION 5
+ *
  */
 
 /*

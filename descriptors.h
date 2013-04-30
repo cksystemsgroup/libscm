@@ -13,6 +13,7 @@
 
 #include <string.h>
 
+#include "debug.h"
 #include "arch.h"
 #include "meter.h"
 #include "finalizer.h"
