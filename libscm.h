@@ -80,20 +80,40 @@
 #endif
 
 /**
- * scm_create_region() returns a const integer representing a new region index
- * if available and -1 otherwise. The new region is detected by scanning
- * the descriptor_root regions array for a region that does not yet have 
- * any region_page, using a next-fit strategy. If such a region is found,
- * a region_page is created and initialized.
+ * scm_block_thread() signals the short-term memory system that
+ * the calling thread is about to leave the system for a while e.g. because of
+ * a blocking call. During this period the system does not wait for scm_tick
+ * calls of this thread.
+ * After the thread finished the blocking state it re-joins the short-term
+ * memory system using the scm_resume_thread call
  */
-extern const int scm_create_region();
+void scm_block_thread(void);
+void scm_resume_thread(void);
 
 /**
- * scm_unregister_region() sets the region age back to a value that is not equal
- * to the descriptor_root current_time. As a consequence the region may
- * be reused again if the dc is 0.
+ * scm_unregister_thread() may be called just before a thread terminates.
+ * The thread's data structures are preserved for a new thread to join
+ * the short-term memory system. Registration of a thread is done
+ * automatically when a thread calls *_tick or *_refresh the first time.
  */
-extern void scm_unregister_region(const int region);
+void scm_unregister_thread(void);
+
+/** scm_register_finalizer registers a finalizer function in
+ * libscm. A function id is returned for later use. (see scm_set_finalizer)
+ *
+ * It is up to the user to design the scm_finalizer function. If
+ * scm_finalizer returns non-zero, the object will not be deallocated.
+ * libscm provides the pointer to the object as parameter of scm_finalizer.
+ */
+int scm_register_finalizer(int(*scm_finalizer)(void*));
+
+/**
+ * scm_set_finalizer binds a finalizer function id
+ * (returned by scm_register_finalizer) to an object (ptr).
+ * This function will be executed just before an expired object is
+ * deallocated.
+ */
+void scm_set_finalizer(void *ptr, int scm_finalizer_id);
 
 /**
  * scm_register_clock() returns a const integer representing
@@ -114,13 +134,20 @@ extern const int scm_register_clock();
 extern void scm_unregister_clock(const int clock);
 
 /**
- * scm_malloc_in_region() allocates memory in a region.
- * scm_malloc_in_region() wraps an object header around
- * objects allocated in a region. The object header allows to
- * "redirect" a refresh call to a region, if a region object
- * is refreshed.
+ * scm_create_region() returns a const integer representing a new region index
+ * if available and -1 otherwise. The new region is detected by scanning
+ * the descriptor_root regions array for a region that does not yet have 
+ * any region_page, using a next-fit strategy. If such a region is found,
+ * a region_page is created and initialized.
  */
-extern void* scm_malloc_in_region(size_t size, const int region_index);
+extern const int scm_create_region();
+
+/**
+ * scm_unregister_region() sets the region age back to a value that is not equal
+ * to the descriptor_root current_time. As a consequence the region may
+ * be reused again if the dc is 0.
+ */
+extern void scm_unregister_region(const int region);
 
 /**
  * scm_malloc() allocates short-term memory objects. This function
@@ -130,6 +157,15 @@ extern void* scm_malloc_in_region(size_t size, const int region_index);
 void *scm_malloc(size_t size);
 
 /**
+ * scm_malloc_in_region() allocates memory in a region.
+ * scm_malloc_in_region() wraps an object header around
+ * objects allocated in a region. The object header allows to
+ * "redirect" a refresh call to a region, if a region object
+ * is refreshed.
+ */
+extern void* scm_malloc_in_region(size_t size, const int region_index);
+
+/**
  * scm_free() frees short-term memory objects with no descriptors on
  * them e.g. permanent objects. This function can be used at compile time.
  * Unmodified code which uses e.g. glibc's free can be used with linker
@@ -137,37 +173,12 @@ void *scm_malloc(size_t size);
  */
 void scm_free(void *ptr);
 
-/**
- * scm_tick() advances the local time of the calling thread
+/*
+ * scm_collect may be called at any appropriate time in the program. It
+ * processes all expired descriptors of the calling thread and frees objects
+ * if their descriptor counter becomes zero.
  */
-void scm_tick(void);
-
-/**
- * scm_tick_clock() advances the time of the given thread-local clock
- */
-void scm_tick_clock(const unsigned long clock);
-
-/**
- * scm_global_tick() advances the global time of the calling thread
- */
-void scm_global_tick(void);
-
-/**
- * scm_refresh() adds extension time units to the expiration time of
- * ptr without taking care of other threads.
- * In a multi-clock environment, scm_refresh refreshes
- * the object with the thread-local base clock.
- * If the object is part of a region, the region is refreshed instead.
- */
-void scm_refresh(void *ptr, unsigned int extension);
-
-/**
- * scm_refresh_region() adds extension time units to the expiration time of
- * a region without taking care of other threads.
- * In a multi-clock environment, scm_refresh refreshes
- * the region with the thread-local base clock.
- */
-void scm_refresh_region(const int region_id, unsigned int extension);
+void scm_collect(void);
 
 /**
  * scm_refresh_with_clock() refreshes a given object with a given clock,
@@ -179,12 +190,13 @@ void scm_refresh_region(const int region_id, unsigned int extension);
 void scm_refresh_with_clock(void *ptr, unsigned int extension, const unsigned long clock);
 
 /**
- * scm_refresh_region_with_clock() refreshes a given region with a given
- * clock, which can be different from the thread-local base clock.
- * If a region is refreshed with multiple clocks it lives
- * until all clocks ticked n times, where n is the respective extension.
+ * scm_refresh() adds extension time units to the expiration time of
+ * ptr without taking care of other threads.
+ * In a multi-clock environment, scm_refresh refreshes
+ * the object with the thread-local base clock.
+ * If the object is part of a region, the region is refreshed instead.
  */
-void scm_refresh_region_with_clock(const int region_id, unsigned int extension, const unsigned long clock);
+void scm_refresh(void *ptr, unsigned int extension);
 
 /**
  * scm_global_refresh() adds extension time units to the expiration time of
@@ -195,6 +207,22 @@ void scm_refresh_region_with_clock(const int region_id, unsigned int extension, 
 void scm_global_refresh(void *ptr, unsigned int extension);
 
 /**
+ * scm_refresh_region_with_clock() refreshes a given region with a given
+ * clock, which can be different from the thread-local base clock.
+ * If a region is refreshed with multiple clocks it lives
+ * until all clocks ticked n times, where n is the respective extension.
+ */
+void scm_refresh_region_with_clock(const int region_id, unsigned int extension, const unsigned long clock);
+
+/**
+ * scm_refresh_region() adds extension time units to the expiration time of
+ * a region without taking care of other threads.
+ * In a multi-clock environment, scm_refresh refreshes
+ * the region with the thread-local base clock.
+ */
+void scm_refresh_region(const int region_id, unsigned int extension);
+
+/**
  * scm_global_refresh_region() adds extension time units to the expiration time of
  * a region and takes care that all other threads have enough time to also call
  * scm_global_refresh_region(region_id, extension).
@@ -202,46 +230,18 @@ void scm_global_refresh(void *ptr, unsigned int extension);
 void scm_global_refresh_region(const int region_id, unsigned int extension);
 
 /**
- * scm_unregister_thread() may be called just before a thread terminates.
- * The thread's data structures are preserved for a new thread to join
- * the short-term memory system. Registration of a thread is done
- * automatically when a thread calls *_tick or *_refresh the first time.
+ * scm_tick_clock() advances the time of the given thread-local clock
  */
-void scm_unregister_thread(void);
+void scm_tick_clock(const unsigned long clock);
 
 /**
- * scm_block_thread() signals the short-term memory system that
- * the calling thread is about to leave the system for a while e.g. because of
- * a blocking call. During this period the system does not wait for scm_tick
- * calls of this thread.
- * After the thread finished the blocking state it re-joins the short-term
- * memory system using the scm_resume_thread call
+ * scm_tick() advances the local time of the calling thread
  */
-void scm_block_thread(void);
-void scm_resume_thread(void);
-
-/*
- * scm_collect may be called at any appropriate time in the program. It
- * processes all expired descriptors of the calling thread and frees objects
- * if their descriptor counter becomes zero.
- */
-void scm_collect(void);
-
-/** scm_register_finalizer registers a finalizer function in
- * libscm. A function id is returned for later use. (see scm_set_finalizer)
- *
- * It is up to the user to design the scm_finalizer function. If
- * scm_finalizer returns non-zero, the object will not be deallocated.
- * libscm provides the pointer to the object as parameter of scm_finalizer.
- */
-int scm_register_finalizer(int(*scm_finalizer)(void*));
+void scm_tick(void);
 
 /**
- * scm_set_finalizer binds a finalizer function id
- * (returned by scm_register_finalizer) to an object (ptr).
- * This function will be executed just before an expired object is
- * deallocated.
+ * scm_global_tick() advances the global time of the calling thread
  */
-void scm_set_finalizer(void *ptr, int scm_finalizer_id);
+void scm_global_tick(void);
 
 #endif	/* _LIBSCM_H_ */
