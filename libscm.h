@@ -8,6 +8,8 @@
 #ifndef _LIBSCM_H_
 #define	_LIBSCM_H_
 
+#include <string.h>
+
 /*
  * One may use the following compile time configuration for libscm.
  * See Makefile for different configurations.
