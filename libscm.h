@@ -92,6 +92,8 @@
 void scm_block_thread(void);
 void scm_resume_thread(void);
 
+void scm_register_thread(void);
+
 /**
  * scm_unregister_thread() may be called just before a thread terminates.
  * The thread's data structures are preserved for a new thread to join
@@ -125,7 +127,7 @@ void scm_set_finalizer(void *ptr, int scm_finalizer_id);
  * If all available clocks/descriptor buffers are in use, the return value is
  * set to -1, indicating an error for the caller function.
  */
-extern const int scm_register_clock();
+const int scm_register_clock();
 
 /**
  * scm_unregister_clock() sets the descriptor buffer age back to a 
@@ -133,7 +135,7 @@ extern const int scm_register_clock();
  * As a consequence the clock buffer will be cleaned up incrementally 
  * during scm_tick() calls.
  */
-extern void scm_unregister_clock(const int clock);
+void scm_unregister_clock(const int clock);
 
 /**
  * scm_create_region() returns a const integer representing a new region index
@@ -142,14 +144,14 @@ extern void scm_unregister_clock(const int clock);
  * any region_page, using a next-fit strategy. If such a region is found,
  * a region_page is created and initialized.
  */
-extern const int scm_create_region();
+const int scm_create_region();
 
 /**
  * scm_unregister_region() sets the region age back to a value that is not equal
  * to the descriptor_root current_time. As a consequence the region may
  * be reused again if the dc is 0.
  */
-extern void scm_unregister_region(const int region);
+void scm_unregister_region(const int region);
 
 /**
  * scm_malloc() allocates short-term memory objects. This function

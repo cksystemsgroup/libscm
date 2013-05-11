@@ -302,11 +302,11 @@ extern __typeof__(scm_resume_thread) scm_resume_thread_internal
     __attribute__((weak, alias("scm_resume_thread"), visibility ("hidden")));
 
 /**
- * register_thread() is called on a thread when it operates the first time
+ * scm_register_thread() is called on a thread when it operates the first time
  * in libscm. The thread data structures are created or reused from previously
  * terminated threads.
  */
-static descriptor_root_t *register_thread() {
+void scm_register_thread() {
     lock_descriptor_roots();
 
     if (terminated_descriptor_roots != NULL) {
@@ -341,8 +341,6 @@ static descriptor_root_t *register_thread() {
     //assert: if descriptor_root belonged to a terminated thread,
     //block_thread was invoked on this thread
     scm_resume_thread_internal();
-
-    return descriptor_root;
 }
 
 /**
