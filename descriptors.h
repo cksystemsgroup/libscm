@@ -203,9 +203,6 @@ struct descriptor_root {
     descriptor_root_t *next;
 };
 
-// The descriptor root is stored as thread-local storage variable.
-// According to perf tools from Google __thread is faster than
-// pthread_getspecific().
 extern __thread descriptor_root_t* descriptor_root;
 
 inline void increment_current_index(descriptor_buffer_t *buffer)

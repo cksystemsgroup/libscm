@@ -147,6 +147,11 @@ size_t __wrap_malloc_usable_size(void *ptr) {
     return __real_malloc_usable_size(object) - sizeof (object_header_t);
 }
 
+// The descriptor root is stored as thread-local storage variable.
+// According to perf tools from Google __thread is faster than
+// pthread_getspecific().
+__thread descriptor_root_t* descriptor_root;
+
 static descriptor_root_t *terminated_descriptor_roots = NULL;
 
 //protects the data structures of terminated threads
