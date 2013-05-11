@@ -1,5 +1,6 @@
 //#include <stdlib.h>
-#include "stm.h"
+
+#include "libscm.h"
 
 void *pointer2 = NULL;
 
@@ -35,4 +36,3 @@ int main(int argc, char** argv) {
 	
 	return 0;
 }
-
