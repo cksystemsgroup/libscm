@@ -8,6 +8,14 @@
 #ifndef _OBJECT_H_
 #define	_OBJECT_H_
 
+#include <string.h>
+
+extern void* __real_malloc(size_t size);
+extern void* __real_calloc(size_t nelem, size_t elsize);
+extern void* __real_realloc(void *ptr, size_t size);
+extern void __real_free(void *ptr);
+extern size_t __real_malloc_usable_size(void *ptr);
+
 /*
  * objects allocated through libscm have an additional object header that
  * is located before the chunk storing the object.

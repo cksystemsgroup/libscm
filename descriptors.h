@@ -11,20 +11,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include <string.h>
-
 #include "debug.h"
 #include "arch.h"
 #include "meter.h"
 #include "finalizer.h"
 #include "object.h"
 #include "libscm.h"
-
-extern void* __real_malloc(size_t size);
-extern void* __real_calloc(size_t nelem, size_t elsize);
-extern void* __real_realloc(void *ptr, size_t size);
-extern void __real_free(void *ptr);
-extern size_t __real_malloc_usable_size(void *ptr);
 
 #ifndef DESCRIPTORS_PER_PAGE
 #define DESCRIPTORS_PER_PAGE \
@@ -216,14 +208,7 @@ struct descriptor_root {
 // pthread_getspecific().
 extern __thread descriptor_root_t* descriptor_root;
 
-/* expire_reg_descriptor_if_exists()
- * expires object descriptors */
-int expire_obj_descriptor_if_exists(expired_descriptor_page_list_t *list)
-    __attribute__((visibility("hidden")));
-
-/* expire_reg_descriptor_if_exists()
- * expires region descriptors */
-int expire_reg_descriptor_if_exists(expired_descriptor_page_list_t *list)
+inline void increment_current_index(descriptor_buffer_t *buffer)
     __attribute__((visibility("hidden")));
 
 /* Takes an object or a region as parameter ptr */
@@ -238,7 +223,14 @@ void expire_buffer(descriptor_buffer_t *buffer,
                    expired_descriptor_page_list_t *exp_list)
     __attribute__((visibility("hidden")));
 
-inline void increment_current_index(descriptor_buffer_t *buffer)
+/* expire_reg_descriptor_if_exists()
+ * expires object descriptors */
+int expire_obj_descriptor_if_exists(expired_descriptor_page_list_t *list)
+    __attribute__((visibility("hidden")));
+
+/* expire_reg_descriptor_if_exists()
+ * expires region descriptors */
+int expire_reg_descriptor_if_exists(expired_descriptor_page_list_t *list)
     __attribute__((visibility("hidden")));
 
 #endif	/* _DESCRIPTORS_H_ */

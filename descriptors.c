@@ -8,6 +8,13 @@
 #include "descriptors.h"
 
 /**
+ * Increments the current_index modulo the maximal expiration extension.
+ */
+inline void increment_current_index(descriptor_buffer_t *buffer) {
+    buffer->current_index = (buffer->current_index + 1) % buffer->not_expired_length;
+}
+
+/**
  * Returns a descriptor page from the descriptor page
  * pool or allocates a new descriptor page if the
  * descriptor page pool is empty.
@@ -44,6 +51,74 @@ static descriptor_page_t *new_descriptor_page() {
     new_page->next = NULL;
 
     return new_page;
+}
+
+/*
+ * Inserts a descriptor for the object or region
+ * provided as parameter 'ptr' */
+void insert_descriptor(void* ptr, descriptor_buffer_t *buffer,
+                       unsigned int expiration) {
+
+    unsigned int insert_index = (buffer->current_index + expiration) % buffer->not_expired_length;
+
+    descriptor_page_list_t *list = &buffer->not_expired[insert_index];
+
+    if (list->first == NULL) {
+        list->first = new_descriptor_page();
+        list->last = list->first;
+    }
+
+    //insert in the last page
+    descriptor_page_t *page = list->last;
+
+    if (page->number_of_descriptors == DESCRIPTORS_PER_PAGE) {
+        //page is full. create new page and append to end of list
+        page = new_descriptor_page();
+        list->last->next = page;
+        list->last = page;
+    }
+
+    page->descriptors[page->number_of_descriptors] = ptr;
+    page->number_of_descriptors++;
+}
+
+/*
+ * Appends a descriptor buffer to the expired page list.
+ * expire_buffer always operates on the current_index-1 list of the buffer
+ */
+void expire_buffer(descriptor_buffer_t *buffer,
+                   expired_descriptor_page_list_t *exp_list) {
+
+    int to_be_expired_index = buffer->current_index - 1;
+
+    if (to_be_expired_index < 0)
+        to_be_expired_index += buffer->not_expired_length;
+
+    descriptor_page_list_t *just_expired_page_list = &buffer->not_expired[to_be_expired_index];
+
+    if (just_expired_page_list->first != NULL) {
+
+        if (just_expired_page_list->first->number_of_descriptors != 0) {
+
+            //append page_list to expired_page_list
+            if (exp_list->first == NULL) {
+                exp_list->first = just_expired_page_list->first;
+                exp_list->last = just_expired_page_list->last;
+                exp_list->collected = 0;
+            } else {
+                exp_list->last->next = just_expired_page_list->first;
+                exp_list->last = just_expired_page_list->last;
+            }
+
+            //reset just_expired_page_list
+            just_expired_page_list->first = NULL;
+            just_expired_page_list->last = just_expired_page_list->first;
+        } else {
+            //leave empty just_expired_page_list where it is
+        }
+    } else {
+        //buffer to expire is empty
+    }
 }
 
 static inline void recycle_descriptor_page(descriptor_page_t *page) {
@@ -182,81 +257,6 @@ int expire_object_descriptor_if_exists(expired_descriptor_page_list_t *list) {
     }
 }
 
-/*
- * Inserts a descriptor for the object or region
- * provided as parameter 'ptr' */
-void insert_descriptor(void* ptr, descriptor_buffer_t *buffer,
-                       unsigned int expiration) {
-
-    unsigned int insert_index = (buffer->current_index + expiration) % buffer->not_expired_length;
-
-    descriptor_page_list_t *list = &buffer->not_expired[insert_index];
-
-    if (list->first == NULL) {
-        list->first = new_descriptor_page();
-        list->last = list->first;
-    }
-
-    //insert in the last page
-    descriptor_page_t *page = list->last;
-
-    if (page->number_of_descriptors == DESCRIPTORS_PER_PAGE) {
-        //page is full. create new page and append to end of list
-    	page = new_descriptor_page();
-        list->last->next = page;
-        list->last = page;
-    }
-
-    page->descriptors[page->number_of_descriptors] = ptr;
-    page->number_of_descriptors++;
-}
-
-/*
- * Appends a descriptor buffer to the expired page list.
- * expire_buffer always operates on the current_index-1 list of the buffer
- */
-void expire_buffer(descriptor_buffer_t *buffer,
-                   expired_descriptor_page_list_t *exp_list) {
-
-    int to_be_expired_index = buffer->current_index - 1;
-
-    if (to_be_expired_index < 0)
-        to_be_expired_index += buffer->not_expired_length;
-
-    descriptor_page_list_t *just_expired_page_list = &buffer->not_expired[to_be_expired_index];
-
-    if (just_expired_page_list->first != NULL) {
-
-        if (just_expired_page_list->first->number_of_descriptors != 0) {
-
-            //append page_list to expired_page_list
-            if (exp_list->first == NULL) {
-                exp_list->first = just_expired_page_list->first;
-                exp_list->last = just_expired_page_list->last;
-                exp_list->collected = 0;
-            } else {
-                exp_list->last->next = just_expired_page_list->first;
-                exp_list->last = just_expired_page_list->last;
-            }
-
-            //reset just_expired_page_list
-            just_expired_page_list->first = NULL;
-            just_expired_page_list->last = just_expired_page_list->first;
-        } else {
-            //leave empty just_expired_page_list where it is
-        }
-    } else {
-        //buffer to expire is empty
-    }
-}
-
-/**
- * Increments the current_index modulo the maximal expiration extension.
- */
-inline void increment_current_index(descriptor_buffer_t *buffer) {
-    buffer->current_index = (buffer->current_index + 1) % buffer->not_expired_length;
-}
-
 /**
  * Recycles a region in O(1) by pooling
  * the list of free region_pages except the
@@ -344,7 +344,6 @@ static void recycle_region(region_t* region) {
 
             return;
         }
-
 
 // check post-conditions
 #ifdef SCM_CHECK_CONDITIONS
