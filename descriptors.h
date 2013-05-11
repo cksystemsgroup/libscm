@@ -223,14 +223,14 @@ void expire_buffer(descriptor_buffer_t *buffer,
                    expired_descriptor_page_list_t *exp_list)
     __attribute__((visibility("hidden")));
 
-/* expire_reg_descriptor_if_exists()
+/* expire_object_descriptor_if_exists()
  * expires object descriptors */
-int expire_obj_descriptor_if_exists(expired_descriptor_page_list_t *list)
+int expire_object_descriptor_if_exists(expired_descriptor_page_list_t *list)
     __attribute__((visibility("hidden")));
 
-/* expire_reg_descriptor_if_exists()
+/* expire_region_descriptor_if_exists()
  * expires region descriptors */
-int expire_reg_descriptor_if_exists(expired_descriptor_page_list_t *list)
+int expire_region_descriptor_if_exists(expired_descriptor_page_list_t *list)
     __attribute__((visibility("hidden")));
 
 #endif	/* _DESCRIPTORS_H_ */

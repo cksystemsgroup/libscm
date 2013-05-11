@@ -705,18 +705,18 @@ inline void scm_free(void *ptr) {
  * Collects descriptors incrementally
  */
 static void scm_lazy_collect(void) {
-    expire_obj_descriptor_if_exists(&descriptor_root->list_of_expired_obj_descriptors);
+    expire_object_descriptor_if_exists(&descriptor_root->list_of_expired_obj_descriptors);
 
-    expire_reg_descriptor_if_exists(&descriptor_root->list_of_expired_reg_descriptors);
+    expire_region_descriptor_if_exists(&descriptor_root->list_of_expired_reg_descriptors);
 }
 
 /**
  * Collects descriptors all at once
  */
 static void scm_eager_collect(void) {
-    while (expire_obj_descriptor_if_exists(
+    while (expire_object_descriptor_if_exists(
                 &descriptor_root->list_of_expired_obj_descriptors));
-    while (expire_reg_descriptor_if_exists(
+    while (expire_region_descriptor_if_exists(
                 &descriptor_root->list_of_expired_reg_descriptors));
 }
 
