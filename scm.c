@@ -785,15 +785,9 @@ static void eager_collect(void) {
 }
 
 inline void scm_collect(void) {
-    if (descriptor_root == NULL) {
-        return;
+    if (descriptor_root != NULL) {
+        eager_collect();
     }
-
-#ifdef SCM_EAGER_COLLECTION
-    eager_collect();
-#else
-    lazy_collect();
-#endif
 }
 
 /**

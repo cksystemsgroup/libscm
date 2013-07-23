@@ -92,16 +92,6 @@
 void scm_block_thread(void);
 void scm_resume_thread(void);
 
-void scm_register_thread(void);
-
-/**
- * scm_unregister_thread() may be called just before a thread terminates.
- * The thread's data structures are preserved for a new thread to join
- * the short-term memory system. Registration of a thread is done
- * automatically when a thread calls *_tick or *_refresh the first time.
- */
-void scm_unregister_thread(void);
-
 /** scm_register_finalizer registers a finalizer function in
  * libscm. A function id is returned for later use. (see scm_set_finalizer)
  *
@@ -167,7 +157,7 @@ void *scm_malloc(size_t size);
  * "redirect" a refresh call to a region, if a region object
  * is refreshed.
  */
-extern void* scm_malloc_in_region(size_t size, const int region_index);
+void* scm_malloc_in_region(size_t size, const int region_index);
 
 /**
  * scm_free() frees short-term memory objects with no descriptors on
