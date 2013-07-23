@@ -11,7 +11,7 @@
 #ifdef SCM_DEBUG_THREADS
 #include <pthread.h>
 
-#define printf printf("%p: ", pthread_self());printf
+#define printf printf("%p: ", (void*) pthread_self());printf
 #endif
 
 #endif /* _DEBUG_H_ */
