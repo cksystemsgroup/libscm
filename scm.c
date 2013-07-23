@@ -163,7 +163,7 @@ static pthread_mutex_t terminated_descriptor_roots_lock = PTHREAD_MUTEX_INITIALI
 static inline void lock_descriptor_roots() {
 #ifdef SCM_PRINT_BLOCKING
     if (pthread_mutex_trylock(&terminated_descriptor_roots_lock)) {
-        printf("thread %p BLOCKS on terminated_descriptor_roots_lock\n", pthread_self());
+        printf("thread %p BLOCKS on terminated_descriptor_roots_lock\n", (void*) pthread_self());
         pthread_mutex_lock(&terminated_descriptor_roots_lock);
     }
 #else
@@ -227,7 +227,7 @@ static pthread_mutex_t global_time_lock = PTHREAD_MUTEX_INITIALIZER;
 static inline void lock_global_time() {
 #ifdef SCM_PRINT_BLOCKING
     if (pthread_mutex_trylock(&global_time_lock)) {
-        printf("thread %p BLOCKS on global_time_lock\n", pthread_self());
+        printf("thread %p BLOCKS on global_time_lock\n", (void*) pthread_self());
         pthread_mutex_lock(&global_time_lock);
     }
 #else
