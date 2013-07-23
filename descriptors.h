@@ -10,6 +10,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 
 #include "debug.h"
 #include "arch.h"
@@ -187,6 +188,9 @@ struct descriptor_root {
     // zombie buffer.
     // round_robin enables constant-time cleaning of zombie buffers.
     unsigned int round_robin;
+
+    // thread participates in global time protocol if flag is false
+    bool blocked;
 
     // A pool of descriptor pages for re-use.
     descriptor_page_t* descriptor_page_pool[SCM_DESCRIPTOR_PAGE_FREELIST_SIZE];

@@ -144,13 +144,13 @@ size_t __wrap_malloc_usable_size(void *ptr) {
 
     object_header_t *object = OBJECT_HEADER(ptr);
 
-    return __real_malloc_usable_size(object) - sizeof (object_header_t);
+    return __real_malloc_usable_size(object) - sizeof(object_header_t);
 }
 
 // The descriptor root is stored as thread-local storage variable.
 // According to perf tools from Google __thread is faster than
 // pthread_getspecific().
-__thread descriptor_root_t* descriptor_root;
+__thread descriptor_root_t* descriptor_root __attribute__((tls_model("initial-exec")));
 
 static descriptor_root_t *terminated_descriptor_roots = NULL;
 
@@ -188,12 +188,12 @@ static descriptor_root_t* new_descriptor_root() {
     descriptor_root_t *descriptor_root =
         __real_calloc(1, sizeof(descriptor_root_t));
 
-    memset(descriptor_root, '\0', sizeof(descriptor_root_t));
-
 #ifdef SCM_RECORD_MEMORY_USAGE
     inc_overhead(__real_malloc_usable_size(descriptor_root));
     inc_allocated_mem(__real_malloc_usable_size(descriptor_root));
 #endif
+
+    descriptor_root->next_clock_index = 1;
 
     descriptor_root->globally_clocked_obj_buffer.not_expired_length =
         SCM_MAX_EXPIRATION_EXTENSION + 2;
@@ -205,7 +205,7 @@ static descriptor_root_t* new_descriptor_root() {
         SCM_MAX_EXPIRATION_EXTENSION + 1;
 
     descriptor_root->round_robin = 1;
-    descriptor_root->next_clock_index = 1;
+    descriptor_root->blocked = true;
 
     return descriptor_root;
 }
@@ -243,9 +243,18 @@ static inline void unlock_global_time() {
 }
 
 /**
- * scm_block_thread() is called when a thread blocks to notify the system about it
+ * scm_block_thread() should be called before a thread blocks to notify the system about it
  */
 void scm_block_thread() {
+    if (descriptor_root == NULL) {
+        return;
+    }
+
+    if (descriptor_root->blocked) {
+        fprintf(stderr, "scm_block_thread: thread is already blocked.\n");
+
+        return;
+    }
 
     //assert: we do not have the descriptor_roots lock
     lock_global_time();
@@ -271,6 +280,8 @@ void scm_block_thread() {
     }
 
     unlock_global_time();
+
+    descriptor_root->blocked = true;
 }
 
 extern __typeof__(scm_block_thread) scm_block_thread_internal
@@ -281,6 +292,15 @@ extern __typeof__(scm_block_thread) scm_block_thread_internal
  * notify the system about it.
  */
 void scm_resume_thread() {
+    if (descriptor_root == NULL) {
+        return;
+    }
+
+    if (!descriptor_root->blocked) {
+        fprintf(stderr, "scm_resume_thread: thread is not blocked.\n");
+
+        return;
+    }
 
     //assert: we do not have the descriptor_roots lock
     lock_global_time();
@@ -301,17 +321,19 @@ void scm_resume_thread() {
     number_of_threads++;
 
     unlock_global_time();
+
+    descriptor_root->blocked = false;
 }
 
 extern __typeof__(scm_resume_thread) scm_resume_thread_internal
     __attribute__((weak, alias("scm_resume_thread"), visibility ("hidden")));
 
 /**
- * scm_register_thread() is called on a thread when it operates the first time
+ * register_thread() is called on a thread when it operates the first time
  * in libscm. The thread data structures are created or reused from previously
  * terminated threads.
  */
-void scm_register_thread() {
+void register_thread() {
     lock_descriptor_roots();
 
     if (terminated_descriptor_roots != NULL) {
@@ -342,27 +364,59 @@ void scm_register_thread() {
     
     unlock_descriptor_roots();
 
-    //TODO: check this
     //assert: if descriptor_root belonged to a terminated thread,
     //block_thread was invoked on this thread
     scm_resume_thread_internal();
 }
 
 /**
- * scm_unregister_thread() is called upon termination of a thread. The thread
- * leaves the system and passes its data structures in a pool to be reused
- * by other threads upon creation.
+ * unregister_thread() is called upon termination of a thread. The thread
+ * leaves the system and passes its data structures to a pool to be reused
+ * by other threads upon their creation.
  */
-void scm_unregister_thread() {
+static void unregister_thread(void* key_variable) {
+    if (descriptor_root != NULL) {
+        scm_block_thread_internal();
 
-    scm_block_thread_internal();
+        lock_descriptor_roots();
 
-    lock_descriptor_roots();
+        descriptor_root->next = terminated_descriptor_roots;
+        terminated_descriptor_roots = descriptor_root;
 
-    descriptor_root->next = terminated_descriptor_roots;
-    terminated_descriptor_roots = descriptor_root;
+        descriptor_root = NULL;
 
-    unlock_descriptor_roots();
+        unlock_descriptor_roots();
+    }
+}
+
+static pthread_key_t descriptor_root_key;
+
+static void make_key() {
+    // create the key and set the destructor
+    if (pthread_key_create(&descriptor_root_key, unregister_thread) != 0) {
+        handle_error("pthread_key_create");
+    }
+}
+
+static pthread_once_t thread_once_control = PTHREAD_ONCE_INIT;
+
+static void create_descriptor_root() {
+    if (descriptor_root != NULL) {
+        return;
+    }
+
+    // create the key, once
+    if (pthread_once(&thread_once_control, make_key) != 0) {
+        handle_error("pthread_once");
+    }
+
+    register_thread();
+
+    // IMPORTANT: also set the pthread key although we will never read from it,
+    // since the destructor is only executed if the value behind the key != 0.
+    if (pthread_setspecific(descriptor_root_key, (void*) descriptor_root) != 0) {
+        handle_error("pthread_setspecific");
+    }
 }
 
 /**
@@ -374,6 +428,7 @@ void scm_unregister_thread() {
  * set to -1, indicating an error for the caller function.
  */
 const int scm_register_clock() {
+    create_descriptor_root();
 
     if(SCM_MAX_CLOCKS <= 1) {
         fprintf(stderr, "libscm was build without multiclock support. "
@@ -415,6 +470,9 @@ const int scm_register_clock() {
  * will be cleaned up incrementally during scm_tick() calls.
  */
 void scm_unregister_clock(const int clock) {
+    if (descriptor_root == NULL) {
+        return;
+    }
 
 #ifdef SCM_CHECK_CONDITIONS
     if (clock <= 1 || clock >= SCM_MAX_CLOCKS) {
@@ -506,9 +564,7 @@ static region_page_t* init_region_page(region_t* region) {
  * a region_page is created and initialized.
  */
 const int scm_create_region() {
-    if (descriptor_root == NULL) {
-        // TODO: create root
-    }
+    create_descriptor_root();
 
     region_t* region = NULL;
     int start = descriptor_root->next_reg_index % SCM_MAX_REGIONS;
@@ -558,6 +614,9 @@ const int scm_create_region() {
  * As a consequence the region may be reused again if its dc is 0.
  */
 void scm_unregister_region(const int region) {
+    if (descriptor_root == NULL) {
+        return;
+    }
 
 #ifdef SCM_CHECK_CONDITIONS
     if (region < 0 || region >= SCM_MAX_REGIONS) {
@@ -591,6 +650,8 @@ inline void *scm_malloc(size_t size) {
  * scm_malloc_region() returns a NULL pointer.
  */
 void* scm_malloc_in_region(size_t size, const int region_index) {
+    create_descriptor_root();
+
     // TODO: check if size < SCM_REGION_PAGE_PAYLOAD_SIZE
 
 #ifdef SCM_CHECK_CONDITIONS
@@ -707,7 +768,7 @@ inline void scm_free(void *ptr) {
 /**
  * Collects descriptors incrementally
  */
-static void scm_lazy_collect(void) {
+static void lazy_collect(void) {
     expire_object_descriptor_if_exists(&descriptor_root->list_of_expired_obj_descriptors);
 
     expire_region_descriptor_if_exists(&descriptor_root->list_of_expired_reg_descriptors);
@@ -716,7 +777,7 @@ static void scm_lazy_collect(void) {
 /**
  * Collects descriptors all at once
  */
-static void scm_eager_collect(void) {
+static void eager_collect(void) {
     while (expire_object_descriptor_if_exists(
                 &descriptor_root->list_of_expired_obj_descriptors));
     while (expire_region_descriptor_if_exists(
@@ -724,7 +785,15 @@ static void scm_eager_collect(void) {
 }
 
 inline void scm_collect(void) {
-    scm_eager_collect();
+    if (descriptor_root == NULL) {
+        return;
+    }
+
+#ifdef SCM_EAGER_COLLECTION
+    eager_collect();
+#else
+    lazy_collect();
+#endif
 }
 
 /**
@@ -763,8 +832,10 @@ void scm_refresh_with_clock(void *ptr, unsigned int extension, const unsigned lo
         extension = check_extension(extension);
 
 #ifdef SCM_DEBUG
-    printf("scm_refresh(%lx, %d)\n", (unsigned long) ptr, extension);
+        printf("scm_refresh(%lx, %d)\n", (unsigned long) ptr, extension);
 #endif
+
+        create_descriptor_root();
 
 // check pre-conditions
 #ifdef SCM_CHECK_CONDITIONS
@@ -790,7 +861,7 @@ void scm_refresh_with_clock(void *ptr, unsigned int extension, const unsigned lo
     }
 
 #ifndef SCM_EAGER_COLLECTION
-    scm_lazy_collect();
+    lazy_collect();
 #else
     //do nothing. expired descriptors are collected at tick
 #endif
@@ -817,7 +888,6 @@ void scm_refresh(void *ptr, unsigned int extension) {
  * region is refreshed instead.
  */
 void scm_global_refresh(void *ptr, unsigned int extension) {
-
     object_header_t *object = OBJECT_HEADER(ptr);
 
     if (object->dc_or_region_id < 0) {
@@ -829,7 +899,6 @@ void scm_global_refresh(void *ptr, unsigned int extension) {
 
         scm_global_refresh_region(region_id, extension);
     } else {
-
         extension = check_extension(extension);
 
         MICROBENCHMARK_START
@@ -840,11 +909,13 @@ void scm_global_refresh(void *ptr, unsigned int extension) {
 
         atomic_int_inc((int*) &object->dc_or_region_id);
 
+        create_descriptor_root();
+
         insert_descriptor(object,
                           &descriptor_root->globally_clocked_obj_buffer, extension + 2);
 
 #ifndef SCM_EAGER_COLLECTION
-        scm_lazy_collect();
+        lazy_collect();
 #else
         //do nothing. expired descriptors are collected at tick
 #endif
@@ -883,6 +954,8 @@ void scm_refresh_region_with_clock(const int region_id, unsigned int extension, 
     printf("region id: %d\n", region_id);
 #endif
 
+    create_descriptor_root();
+
     region_t* region = &descriptor_root->regions[region_id];
 
 #ifdef SCM_CHECK_CONDITIONS
@@ -899,7 +972,7 @@ void scm_refresh_region_with_clock(const int region_id, unsigned int extension, 
                       &descriptor_root->locally_clocked_reg_buffer[clock], extension);
 
 #ifndef SCM_EAGER_COLLECTION
-    scm_lazy_collect();
+    lazy_collect();
 #else
     //do nothing. expired descriptors are collected at tick
 #endif
@@ -941,6 +1014,8 @@ void scm_global_refresh_region(const int region_id, unsigned int extension) {
 
     extension = check_extension(extension);
 
+    create_descriptor_root();
+
     region_t* region = &(descriptor_root->regions[region_id]);
     atomic_int_inc((int*) &region->dc);
 
@@ -948,7 +1023,7 @@ void scm_global_refresh_region(const int region_id, unsigned int extension) {
                       &descriptor_root->globally_clocked_reg_buffer, extension + 2);
 
 #ifndef SCM_EAGER_COLLECTION
-    scm_lazy_collect();
+    lazy_collect();
 #else
     //do nothing. expired descriptors are collected at tick
 #endif
@@ -993,6 +1068,10 @@ static void increment_and_expire_clock(const unsigned long clock) {
  * given thread-local clock
  */
 void scm_tick_clock(const unsigned long clock) {
+    if (descriptor_root == NULL) {
+        return;
+    }
+
     MICROBENCHMARK_START
 
 #ifdef SCM_DEBUG
@@ -1037,11 +1116,11 @@ void scm_tick_clock(const unsigned long clock) {
         }
     }
 #ifdef SCM_EAGER_COLLECTION
-    scm_eager_collect();
+    eager_collect();
 #else
     //we also process expired descriptors at tick
     //to get a cyclic allocation/free scheme. this is optional
-    scm_lazy_collect();
+    lazy_collect();
 #endif
 
 #ifdef SCM_RECORD_MEMORY_USAGE
@@ -1063,6 +1142,10 @@ inline void scm_tick(void) {
  * scm_global_tick advances the global time of the calling thread
  */
 void scm_global_tick(void) {
+    if (descriptor_root == NULL || descriptor_root->blocked) {
+        return;
+    }
+
     MICROBENCHMARK_START
 
 #ifdef SCM_DEBUG
@@ -1139,9 +1222,9 @@ void scm_global_tick(void) {
     }
 
 #ifdef SCM_EAGER_COLLECTION
-    scm_eager_collect();
+    eager_collect();
 #else
-    scm_lazy_collect();
+    lazy_collect();
 #endif
 
 #ifdef SCM_RECORD_MEMORY_USAGE
