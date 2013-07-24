@@ -14,10 +14,12 @@
 void *__wrap_malloc(size_t size) {
 
     object_header_t *object =
-        (object_header_t*) (__real_malloc(size + sizeof (object_header_t)));
+        (object_header_t*) (__real_malloc(size + sizeof(object_header_t)));
 
     if (!object) {
-        fprintf(stderr, "malloc failed.\n");
+#ifdef SCM_DEBUG
+        printf("malloc failed.\n");
+#endif
         return NULL;
     }
 
@@ -56,10 +58,12 @@ void *__wrap_realloc(void *ptr, size_t size) {
     if (ptr == NULL) return __wrap_malloc_internal(size);
     //else: create new object
     object_header_t *new_object =
-        (object_header_t*) __real_malloc(size + sizeof (object_header_t));
+        (object_header_t*) __real_malloc(size + sizeof(object_header_t));
 
     if (!new_object) {
-        fprintf(stderr, "realloc failed.\n");
+#ifdef SCM_DEBUG
+        printf("realloc failed.\n");
+#endif
         return NULL;
     }
     new_object->dc_or_region_id = 0;
@@ -127,7 +131,7 @@ void __wrap_free(void *ptr) {
         if(object->dc_or_region_id > 0) {
             printf("Cannot free objects which are still referenced.\n");
         } else if(object->dc_or_region_id < 0) {
-            printf("Cannot free single objects from a region\n");
+            printf("Cannot free single objects from a region.\n");
         }
 #endif
     }
@@ -163,7 +167,7 @@ static pthread_mutex_t terminated_descriptor_roots_lock = PTHREAD_MUTEX_INITIALI
 static inline void lock_descriptor_roots() {
 #ifdef SCM_PRINT_BLOCKING
     if (pthread_mutex_trylock(&terminated_descriptor_roots_lock)) {
-        printf("thread %p BLOCKS on terminated_descriptor_roots_lock\n", (void*) pthread_self());
+        printf("Thread %p BLOCKS on terminated_descriptor_roots_lock.\n", (void*) pthread_self());
         pthread_mutex_lock(&terminated_descriptor_roots_lock);
     }
 #else
@@ -227,7 +231,7 @@ static pthread_mutex_t global_time_lock = PTHREAD_MUTEX_INITIALIZER;
 static inline void lock_global_time() {
 #ifdef SCM_PRINT_BLOCKING
     if (pthread_mutex_trylock(&global_time_lock)) {
-        printf("thread %p BLOCKS on global_time_lock\n", (void*) pthread_self());
+        printf("Thread %p BLOCKS on global_time_lock.\n", (void*) pthread_self());
         pthread_mutex_lock(&global_time_lock);
     }
 #else
@@ -251,7 +255,9 @@ void scm_block_thread() {
     }
 
     if (descriptor_root->blocked) {
-        fprintf(stderr, "scm_block_thread: thread is already blocked.\n");
+#ifdef SCM_DEBUG
+        printf("scm_block_thread: thread is already blocked.\n");
+#endif
 
         return;
     }
@@ -297,7 +303,9 @@ void scm_resume_thread() {
     }
 
     if (!descriptor_root->blocked) {
-        fprintf(stderr, "scm_resume_thread: thread is not blocked.\n");
+#ifdef SCM_DEBUG
+        printf("scm_resume_thread: thread is not blocked.\n");
+#endif
 
         return;
     }
@@ -344,8 +352,7 @@ void register_thread() {
 
 #ifdef SCM_CHECK_CONDITIONS
         if(descriptor_root->round_robin != 1) {
-            fprintf(stderr, "Descriptor root initialization failed. "
-                    "Round robin is %u \n", descriptor_root->round_robin);
+            printf("Descriptor root initialization failed. Round robin is %u.\n", descriptor_root->round_robin);
             exit(-1);
         }
 #endif
@@ -394,7 +401,10 @@ static pthread_key_t descriptor_root_key;
 static void make_key() {
     // create the key and set the destructor
     if (pthread_key_create(&descriptor_root_key, unregister_thread) != 0) {
-        handle_error("pthread_key_create");
+#ifdef SCM_DEBUG
+        printf("pthread_key_create failed.\n");
+        exit(-1);
+#endif
     }
 }
 
@@ -407,7 +417,10 @@ static void create_descriptor_root() {
 
     // create the key, once
     if (pthread_once(&thread_once_control, make_key) != 0) {
-        handle_error("pthread_once");
+#ifdef SCM_DEBUG
+        printf("pthread_once failed.\n");
+        exit(-1);
+#endif
     }
 
     register_thread();
@@ -415,7 +428,10 @@ static void create_descriptor_root() {
     // IMPORTANT: also set the pthread key although we will never read from it,
     // since the destructor is only executed if the value behind the key != 0.
     if (pthread_setspecific(descriptor_root_key, (void*) descriptor_root) != 0) {
-        handle_error("pthread_setspecific");
+#ifdef SCM_DEBUG
+        printf("pthread_setspecific failed.\n");
+        exit(-1);
+#endif
     }
 }
 
@@ -430,11 +446,13 @@ static void create_descriptor_root() {
 const int scm_register_clock() {
     create_descriptor_root();
 
-    if(SCM_MAX_CLOCKS <= 1) {
-        fprintf(stderr, "libscm was build without multiclock support. "
-                "Set SCM_MAX_CLOCKS to > 1 if you want to use multiple clocks.\n");
-        exit(-1);
+    if (SCM_MAX_CLOCKS <= 1) {
+#ifdef SCM_DEBUG
+        printf("libscm was built without multiclock support. Set SCM_MAX_CLOCKS to > 1 to use multiple clocks.\n");
+#endif
+        return(-1);
     }
+
     int start_index = descriptor_root->next_clock_index;
     int i = start_index;
     
@@ -443,13 +461,16 @@ const int scm_register_clock() {
         i = (i+1) % SCM_MAX_CLOCKS;
         i = i != 0 ? i : 1;
         if (i == start_index) {
-            fprintf(stderr, "Clock contingency exceeded.\n");
-            exit(-1);
+#ifdef SCM_DEBUG
+            printf("Clock contingency exceeded.\n");
+#endif
+            return(-1);
         }
     }
     start_index = (i+1) % SCM_MAX_CLOCKS;
     start_index = start_index != 0 ? start_index : 1;
     descriptor_root->next_clock_index = start_index;
+
     descriptor_root->locally_clocked_obj_buffer[i].not_expired_length =
         SCM_MAX_EXPIRATION_EXTENSION + 1;
     descriptor_root->locally_clocked_reg_buffer[i].not_expired_length =
@@ -474,12 +495,12 @@ void scm_unregister_clock(const int clock) {
         return;
     }
 
-#ifdef SCM_CHECK_CONDITIONS
     if (clock <= 1 || clock >= SCM_MAX_CLOCKS) {
-        fprintf(stderr, "Clock index is invalid.\n");
+#ifdef SCM_DEBUG
+        printf("Clock index is invalid.\n");
+#endif
         return;
     }
-#endif
 
     descriptor_root->locally_clocked_obj_buffer[clock].age =
         (descriptor_root->current_time - 1);
@@ -493,13 +514,13 @@ void scm_unregister_clock(const int clock) {
  * The region_page is allocated page-aligned.
  */
 static region_page_t* init_region_page(region_t* region) {
-
 // check pre-conditions
 #ifdef SCM_CHECK_CONDITIONS
     if (region == NULL) {
-        fprintf(stderr, "Cannot initialize region_page for NULL region\n");
+        printf("Cannot initialize region page for NULL region.\n");
+        exit(-1);
     } else if (region->age != descriptor_root->current_time) {
-        fprintf(stderr, "Initializing region page into zombie region is not allowed\n");
+        printf("Initializing region page into zombie region is not allowed.\n");
     }
     region_t* invar_region = region;
     region_page_t* invar_first_region_page = region->firstPage;
@@ -521,7 +542,9 @@ static region_page_t* init_region_page(region_t* region) {
         new_page = __real_malloc(SCM_REGION_PAGE_SIZE);
 
         if (new_page == NULL) {
-            fprintf(stderr, "Memory for region page could not be allocated.\n");
+#ifdef SCM_DEBUG
+            printf("Memory for region page could not be allocated.\n");
+#endif
             exit(-1);
         }
 
@@ -545,11 +568,11 @@ static region_page_t* init_region_page(region_t* region) {
 // check post-conditions
 #ifdef SCM_CHECK_CONDITIONS
     if (region == NULL) {
-        fprintf(stderr, "The region became NULL during initialization of a region page\n");
+        printf("The region became NULL during initialization of a region page.\n");
     } else if (region != invar_region || region->firstPage != invar_first_region_page) {
-        fprintf(stderr, "The region or the first region-page changed during initialization\n");
+        printf("The region or the first region page changed during initialization.\n");
     } else if (new_page == NULL || new_page->nextPage != NULL) {
-        fprintf(stderr, "The new region page was not correctly initialized\n");
+        printf("The new region page was not correctly initialized.\n");
     }
 #endif
 
@@ -582,7 +605,9 @@ const int scm_create_region() {
         }
         i = (i + 1) % SCM_MAX_REGIONS;
         if (i == start) {
-            fprintf(stderr, "Region contingency exceeded.\n");
+#ifdef SCM_DEBUG
+            printf("Region contingency exceeded.\n");
+#endif
             return -1;
         }
         region = &descriptor_root->regions[i];
@@ -600,7 +625,7 @@ const int scm_create_region() {
             || region->lastPage == NULL
             || region->dc != 0
             || region->number_of_region_pages != 1 ) {
-        fprintf(stderr, "Region creation or initialization failed\n");
+        printf("Region creation or initialization failed.\n");
         exit(-1);
     }
 #endif
@@ -618,12 +643,12 @@ void scm_unregister_region(const int region) {
         return;
     }
 
-#ifdef SCM_CHECK_CONDITIONS
     if (region < 0 || region >= SCM_MAX_REGIONS) {
-        fprintf(stderr, "Region index is invalid.\n");
-        exit(-1);
-    }
+#ifdef SCM_DEBUG
+        printf("Region index is invalid.\n");
 #endif
+        return;
+    }
 
     descriptor_root->regions[region].age =
         (descriptor_root->current_time - 1);
@@ -634,7 +659,7 @@ inline void *scm_malloc(size_t size) {
 }
 
 /**
- * scm_malloc_region() allocates memory in a region.
+ * scm_malloc_in_region() allocates memory in a region.
  * It adds space for an object header to
  * the requested memory and initializes the
  * memory header.
@@ -646,114 +671,88 @@ inline void *scm_malloc(size_t size) {
  * max region_page payload size, scm_malloc_in_region() returns NULL
  * and prints an error message.
  * If the region does not contain at least one
- * region_pages it was not correctly initialized and
- * scm_malloc_region() returns a NULL pointer.
+ * region_page it was not correctly initialized and
+ * scm_malloc_in_region() returns a NULL pointer.
  */
 void* scm_malloc_in_region(size_t size, const int region_index) {
-    create_descriptor_root();
+    size_t requested_size = size + sizeof(object_header_t);
+    unsigned int needed_space = CACHEALIGN(requested_size);
 
-    // TODO: check if size < SCM_REGION_PAGE_PAYLOAD_SIZE
-
-#ifdef SCM_CHECK_CONDITIONS
-    if (region_index < 0 || region_index >= SCM_MAX_REGIONS) {
-        fprintf(stderr, "Region index is invalid.");
-        exit(-1);
-    }
+    if (needed_space > SCM_REGION_PAGE_PAYLOAD_SIZE) {
+#ifdef SCM_DEBUG
+        printf("The region allocator does not support memory of this size.\n");
 #endif
+        return NULL;
+    }
+
+    if (region_index < 0 || region_index >= SCM_MAX_REGIONS) {
+#ifdef SCM_DEBUG
+        printf("Region index is invalid.\n");
+#endif
+        return NULL;
+    }
+
+    create_descriptor_root();
 
     region_t* region = &descriptor_root->regions[region_index];
 
+    if (region == NULL) {
+#ifdef SCM_DEBUG
+        printf("Cannot allocate into NULL region.\n");
+#endif
+        return NULL;
+    }
+
     // check pre-conditions
 #ifdef SCM_CHECK_CONDITIONS
-    if (region == NULL) {
-        fprintf(stderr, "Cannot allocate into NULL region\n");
-        return NULL;
-    } else {
-        if (region->firstPage == NULL || region->lastPage == NULL) {
-            fprintf(stderr, "Region was not correctly initialized\n");
-            exit(-1);
-        }
-        if(region->age != descriptor_root->current_time) {
-            fprintf(stderr, "Allocation into zombie page is not allowed.\n");
-            exit(-1);
-        }
+    if (region->firstPage == NULL || region->lastPage == NULL) {
+        printf("Region was not correctly initialized.\n");
+        exit(-1);
+    }
+    if(region->age != descriptor_root->current_time) {
+        printf("Allocation into zombie page is not allowed.\n");
+        exit(-1);
     }
     region_t* invar_region = region;
 #endif
 
-    size_t requested_size = size + sizeof(object_header_t);
-    unsigned int needed_space = CACHEALIGN(requested_size);
-
     object_header_t* new_obj = region->next_free_address;
-    region->next_free_address = new_obj + needed_space;
+    region->next_free_address += needed_space;
 
-    // check if the requested size fits into a region page
+    // check if the requested size fits into the region page
     if(region->next_free_address > region->last_address_in_last_page) {
         // slow allocation
-
-        if (needed_space > SCM_REGION_PAGE_PAYLOAD_SIZE) {
-            fprintf(stderr, "The region allocator does not support memory of this size\n");
-            return NULL;
-        }
 #ifdef SCM_DEBUG
-        printf("Page is full\n Creating new page...");
-        printf("[new_region_page (%u)]\n", SCM_REGION_PAGE_SIZE);
+        printf("Page is full.\n Creating new page...[new region_page (%u)].\n", SCM_REGION_PAGE_SIZE);
 #endif
         // allocate new page
         region_page_t* page = init_region_page(region);
 
+        new_obj = (object_header_t*) page->memory;
         region->next_free_address = page->memory + needed_space;
 
-        new_obj = (object_header_t*) page->memory;
-        new_obj->dc_or_region_id = region_index | HB_MASK;
-        new_obj->finalizer_index = -1;
-
-// check post-conditions
-#ifdef SCM_CHECK_CONDITIONS
-        if (region != invar_region) {
-            fprintf(stderr, "The region or the first region-page changed during initialization\n");
-            exit(-1);
-        }
-        if (new_obj == NULL) {
-            fprintf(stderr, "Error during allocation. Object is NULL\n");
-            exit(-1);
-        }
-        unsigned long not_word_aligned = (unsigned long)
-                (region->next_free_address) % (unsigned long) sizeof(long);
-        if (not_word_aligned) {
-                fprintf(stderr, "Requested memory was not word aligned\n");
-                exit(-1);
-        }
-#endif
 #ifdef SCM_MEMINFO
         region->lastPage->used_memory += needed_space;
         inc_nub_regions(needed_space);
 #endif
-
-        return PAYLOAD_OFFSET(new_obj);
     }
-
-    // fast allocation
-    region->next_free_address = new_obj + (needed_space/sizeof(unsigned long));
 
     new_obj->dc_or_region_id = region_index | HB_MASK;
     new_obj->finalizer_index = -1;
 
-
 // check post-conditions
 #ifdef SCM_CHECK_CONDITIONS
     if (region != invar_region) {
-        fprintf(stderr, "The region or the first region-page changed during initialization\n");
+        printf("The region or the first region page changed during initialization.\n");
         return NULL;
     }
     if (new_obj == NULL) {
-        fprintf(stderr, "Error during allocation. Object is NULL\n");
+        printf("Error during allocation. Object is NULL.\n");
         return NULL;
     }
-    unsigned long not_word_aligned = (unsigned long)
-                    (region->next_free_address) % (unsigned long) sizeof(long);
+    unsigned long not_word_aligned = (unsigned long) (region->next_free_address) % (unsigned long) sizeof(long);
     if (not_word_aligned) {
-        fprintf(stderr, "Requested memory was not word aligned\n");
+        printf("Requested memory was not word aligned.\n");
         return NULL;
     }
 #endif
@@ -797,9 +796,8 @@ inline void scm_collect(void) {
 static inline unsigned int check_extension(unsigned int given_extension) {
     if (given_extension > SCM_MAX_EXPIRATION_EXTENSION) {
 #ifdef SCM_DEBUG
-        printf("violation of SCM_MAX_EXPIRATION_EXTENT\n");
+        printf("Violation of SCM_MAX_EXPIRATION_EXTENSION.\n");
 #endif
-
         return SCM_MAX_EXPIRATION_EXTENSION;
     } else {
         return given_extension;
@@ -813,55 +811,70 @@ static inline unsigned int check_extension(unsigned int given_extension) {
  * until all clocks ticked n times, where n is the respective extension.
  * If the object is part of a region, the region is refreshed instead.
  */
-void scm_refresh_with_clock(void *ptr, unsigned int extension, const unsigned long clock) {
+void scm_refresh_with_clock(void *ptr, unsigned int extension, const unsigned int clock) {
     MICROBENCHMARK_START
+
+    if (ptr == NULL) {
+#ifdef SCM_DEBUG
+        printf("Cannot refresh NULL pointer.\n");
+#endif
+        return;
+    }
 
     object_header_t *object = OBJECT_HEADER(ptr);
 
     // is the object allocated into a region?
     if (object->dc_or_region_id < 0) {
         int region_id = object->dc_or_region_id & ~HB_MASK;
+
         scm_refresh_region_with_clock(region_id, extension, clock);
     } else {
+        if (object->dc_or_region_id == INT_MAX) {
+#ifdef SCM_DEBUG
+            printf("Descriptor counter reached max value.\n");
+#endif
+            return;
+        }
+
         extension = check_extension(extension);
 
+        if (clock < 0 || clock >= SCM_MAX_CLOCKS) {
 #ifdef SCM_DEBUG
-        printf("scm_refresh(%lx, %d)\n", (unsigned long) ptr, extension);
+            printf("Clock is invalid.\n");
 #endif
+            return;
+        }
 
         create_descriptor_root();
 
 // check pre-conditions
 #ifdef SCM_CHECK_CONDITIONS
-        if (ptr == NULL) {
-            fprintf(stderr, "Cannot refresh NULL pointer\n");
-            return;
-        }
         if (descriptor_root->current_time !=
-                descriptor_root->locally_clocked_reg_buffer[clock].age ||
-                descriptor_root->locally_clocked_reg_buffer[clock]
+                descriptor_root->locally_clocked_obj_buffer[clock].age ||
+                descriptor_root->locally_clocked_obj_buffer[clock]
                 .not_expired_length == 0) {
-            fprintf(stderr, "Cannot refresh zombie clock");
+            printf("Cannot refresh zombie clock.\n");
             return;
         }
 #endif
-        if (object->dc_or_region_id == INT_MAX) {
-            fprintf(stderr, "Descriptor counter reached max value");
-            return;
-        }
+
         atomic_int_inc((int*) & object->dc_or_region_id);
         insert_descriptor(object,
                           &descriptor_root->locally_clocked_obj_buffer[clock], extension);
-    }
 
 #ifndef SCM_EAGER_COLLECTION
-    lazy_collect();
+        lazy_collect();
 #else
-    //do nothing. expired descriptors are collected at tick
+        //do nothing. expired descriptors are collected at tick
+#endif
+    }
+    
+#ifdef SCM_RECORD_MEMORY_USAGE
+    print_memory_consumption();
 #endif
 
     MICROBENCHMARK_STOP
-    MICROBENCHMARK_DURATION("scm_refresh")
+    MICROBENCHMARK_DURATION("scm_refresh_with_clock")
 }
 
 /**
@@ -882,29 +895,34 @@ void scm_refresh(void *ptr, unsigned int extension) {
  * region is refreshed instead.
  */
 void scm_global_refresh(void *ptr, unsigned int extension) {
+    MICROBENCHMARK_START
+    
+    if (ptr == NULL) {
+#ifdef SCM_DEBUG
+        printf("Cannot refresh NULL pointer.\n");
+#endif
+        return;
+    }
+
     object_header_t *object = OBJECT_HEADER(ptr);
 
     if (object->dc_or_region_id < 0) {
-#ifdef SCM_DEBUG
-        printf("scm_global_refresh(%lx, %d)\n", (unsigned long) ptr, extension);
-#endif
-
         int region_id = object->dc_or_region_id & ~HB_MASK;
 
         scm_global_refresh_region(region_id, extension);
     } else {
-        extension = check_extension(extension);
-
-        MICROBENCHMARK_START
-
+        if (object->dc_or_region_id == INT_MAX) {
 #ifdef SCM_DEBUG
-        printf("scm_global_refresh(%lx, %d)\n", (unsigned long) ptr, extension);
+            printf("Descriptor counter reached max value.\n");
 #endif
+            return;
+        }
 
-        atomic_int_inc((int*) &object->dc_or_region_id);
+        extension = check_extension(extension);
 
         create_descriptor_root();
 
+        atomic_int_inc((int*) &object->dc_or_region_id);
         insert_descriptor(object,
                           &descriptor_root->globally_clocked_obj_buffer, extension + 2);
 
@@ -913,13 +931,14 @@ void scm_global_refresh(void *ptr, unsigned int extension) {
 #else
         //do nothing. expired descriptors are collected at tick
 #endif
+    }
 
 #ifdef SCM_RECORD_MEMORY_USAGE
-        print_memory_consumption();
+    print_memory_consumption();
 #endif
-        MICROBENCHMARK_STOP
-        MICROBENCHMARK_DURATION("scm_global_refresh")
-    }
+    
+    MICROBENCHMARK_STOP
+    MICROBENCHMARK_DURATION("scm_global_refresh")
 }
 
 /**
@@ -928,39 +947,45 @@ void scm_global_refresh(void *ptr, unsigned int extension) {
  * If a region is refreshed with multiple clocks it lives
  * until all clocks ticked n times, where n is the respective extension.
  */
-void scm_refresh_region_with_clock(const int region_id, unsigned int extension, const unsigned long clock) {
+void scm_refresh_region_with_clock(const int region_index, unsigned int extension, const unsigned int clock) {
 
+    if (region_index < 0 || region_index >= SCM_MAX_REGIONS) {
 #ifdef SCM_DEBUG
-    printf("scm_refresh_region_with_clock(%d, %u, %lu)\n", region_id, extension, clock);
+        printf("Region index is invalid.\n");
 #endif
-
-// check pre-conditions
-#ifdef SCM_CHECK_CONDITIONS
-    if (region_id < 0 || region_id > SCM_MAX_REGIONS) {
-        fprintf(stderr, "Region id is out of range\n");
         return;
     }
-#endif
 
     extension = check_extension(extension);
 
+    if (clock < 0 || clock >= SCM_MAX_CLOCKS) {
 #ifdef SCM_DEBUG
-    printf("region id: %d\n", region_id);
+        printf("Clock is invalid.\n");
 #endif
+        return;
+    }
 
     create_descriptor_root();
 
-    region_t* region = &descriptor_root->regions[region_id];
+    region_t* region = &descriptor_root->regions[region_index];
+
+    if (region->dc == INT_MAX) {
+#ifdef SCM_DEBUG
+        printf("Region descriptor counter reached max value.\n");
+#endif
+        return;
+    }
 
 #ifdef SCM_CHECK_CONDITIONS
     if (descriptor_root->current_time !=
             descriptor_root->locally_clocked_reg_buffer[clock].age ||
             descriptor_root->locally_clocked_reg_buffer[clock]
             .not_expired_length == 0) {
-        fprintf(stderr, "Cannot refresh zombie or uninitialized clock");
+        printf("Cannot refresh zombie or uninitialized clock.\n");
         return;
     }
 #endif
+
     atomic_int_inc((int*) &region->dc);
     insert_descriptor(region,
                       &descriptor_root->locally_clocked_reg_buffer[clock], extension);
@@ -982,8 +1007,8 @@ void scm_refresh_region_with_clock(const int region_id, unsigned int extension, 
  * In a multi-clock environment, scm_refresh refreshes
  * the region with the thread-local base clock.
  */
-void scm_refresh_region(const int region_id, unsigned int extension) {
-    scm_refresh_region_with_clock(region_id, extension, 0);
+void scm_refresh_region(const int region_index, unsigned int extension) {
+    scm_refresh_region_with_clock(region_index, extension, 0);
 }
 
 /**
@@ -991,28 +1016,30 @@ void scm_refresh_region(const int region_id, unsigned int extension) {
  * the expiration time of a region making sure that all other threads have
  * enough time to also call scm_global_refresh_region(region_id, extension).
  */
-void scm_global_refresh_region(const int region_id, unsigned int extension) {
-
-#ifdef SCM_CHECK_CONDITIONS
-    if (region_id < 0 || region_id >= SCM_MAX_REGIONS) {
-        fprintf(stderr, "Region index is invalid.");
-        exit(-1);
-    }
-#endif
-
+void scm_global_refresh_region(const int region_index, unsigned int extension) {
     MICROBENCHMARK_START
 
+    if (region_index < 0 || region_index >= SCM_MAX_REGIONS) {
 #ifdef SCM_DEBUG
-    printf("scm_global_refresh_region(%d, %d)\n", region_id, extension);
+        printf("Region index is invalid.\n");
 #endif
+        return;
+    }
 
     extension = check_extension(extension);
 
     create_descriptor_root();
 
-    region_t* region = &(descriptor_root->regions[region_id]);
-    atomic_int_inc((int*) &region->dc);
+    region_t* region = &(descriptor_root->regions[region_index]);
 
+    if (region->dc == INT_MAX) {
+#ifdef SCM_DEBUG
+        printf("Region descriptor counter reached max value.\n");
+#endif
+        return;
+    }
+
+    atomic_int_inc((int*) &region->dc);
     insert_descriptor(region,
                       &descriptor_root->globally_clocked_reg_buffer, extension + 2);
 
@@ -1025,6 +1052,7 @@ void scm_global_refresh_region(const int region_id, unsigned int extension) {
 #ifdef SCM_RECORD_MEMORY_USAGE
     print_memory_consumption();
 #endif
+
     MICROBENCHMARK_STOP
     MICROBENCHMARK_DURATION("scm_global_refresh_region")
 }
@@ -1034,14 +1062,7 @@ void scm_global_refresh_region(const int region_id, unsigned int extension) {
  * the locally clocked descriptor buffers
  * and expires the descriptors from the last index
  */
-static void increment_and_expire_clock(const unsigned long clock) {
-
-#ifdef SCM_CHECK_CONDITIONS
-    if (clock < 0 || clock >= SCM_MAX_CLOCKS) {
-        fprintf(stderr, "The given clock is out of range.\n");
-        exit(-1);
-    }
-#endif
+static void increment_and_expire_clock(const unsigned int clock) {
     //make local time progress
     //current_index is equal to the so-called thread-local time
     increment_current_index(
@@ -1061,20 +1082,27 @@ static void increment_and_expire_clock(const unsigned long clock) {
  * scm_tick_clock() is used to advance the time of the 
  * given thread-local clock
  */
-void scm_tick_clock(const unsigned long clock) {
+void scm_tick_clock(const unsigned int clock) {
+    MICROBENCHMARK_START
+
     if (descriptor_root == NULL) {
         return;
     }
 
-    MICROBENCHMARK_START
+    if (clock < 0 || clock >= SCM_MAX_CLOCKS) {
+#ifdef SCM_DEBUG
+        printf("Clock is invalid.\n");
+#endif
+        return;
+    }
 
 #ifdef SCM_DEBUG
-    printf("Ticking clock: %lu\n", clock);
+    printf("Ticking clock: %d.\n", clock);
 #endif
+
     increment_and_expire_clock(clock);
 
-
-    if(SCM_MAX_CLOCKS > 1) {
+    if (SCM_MAX_CLOCKS > 1) {
         unsigned int rr_index = descriptor_root->round_robin;
         if (rr_index == clock) {
             rr_index = (rr_index + 1) % SCM_MAX_CLOCKS;
@@ -1083,10 +1111,9 @@ void scm_tick_clock(const unsigned long clock) {
             }
         }
 
-
 #ifdef SCM_CHECK_CONDITIONS
         if (rr_index == 0 || rr_index >= SCM_MAX_CLOCKS) {
-            fprintf(stderr, "The round robin index is %u\n", rr_index);
+            printf("The round-robin index is %u.\n", rr_index);
             exit(-1);
         }
 #endif
@@ -1106,9 +1133,9 @@ void scm_tick_clock(const unsigned long clock) {
                 rr_index = 1;
             }
             descriptor_root->round_robin = rr_index;
-
         }
     }
+
 #ifdef SCM_EAGER_COLLECTION
     eager_collect();
 #else
@@ -1122,7 +1149,7 @@ void scm_tick_clock(const unsigned long clock) {
 #endif
 
     MICROBENCHMARK_STOP
-    MICROBENCHMARK_DURATION("scm_tick")
+    MICROBENCHMARK_DURATION("scm_tick_clock")
 }
 
 /**
@@ -1136,17 +1163,11 @@ inline void scm_tick(void) {
  * scm_global_tick advances the global time of the calling thread
  */
 void scm_global_tick(void) {
+    MICROBENCHMARK_START
+
     if (descriptor_root == NULL || descriptor_root->blocked) {
         return;
     }
-
-    MICROBENCHMARK_START
-
-#ifdef SCM_DEBUG
-    printf("scm_global_tick GT: %lu GP: %lu #T:%d ttc:%d\n",
-           global_time, descriptor_root->global_phase,
-           number_of_threads, ticked_threads_countdown);
-#endif
 
     if (global_time == descriptor_root->global_phase) {
 
@@ -1191,7 +1212,7 @@ void scm_global_tick(void) {
 
 #ifdef SCM_CHECK_CONDITIONS
         if (rr_index == 0 || rr_index >= SCM_MAX_CLOCKS) {
-            fprintf(stderr, "The round robin index = %u must never be 0 or >= SCM_MAX_CLOCKS.\n", rr_index);
+            printf("The round-robin index = %u must never be 0 or >= SCM_MAX_CLOCKS.\n", rr_index);
             return;
         }
 #endif
@@ -1224,6 +1245,7 @@ void scm_global_tick(void) {
 #ifdef SCM_RECORD_MEMORY_USAGE
     print_memory_consumption();
 #endif
+
     MICROBENCHMARK_STOP
     MICROBENCHMARK_DURATION("scm_global_tick")
 }

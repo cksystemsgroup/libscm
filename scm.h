@@ -14,9 +14,6 @@
 #include <pthread.h>
 #include <limits.h>
 
-#define handle_error(msg) \
-  do { perror(msg); exit(EXIT_FAILURE); } while (0)
-  
 #include "debug.h"
 #include "arch.h"
 #include "object.h"

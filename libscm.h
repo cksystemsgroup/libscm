@@ -181,7 +181,7 @@ void scm_collect(void);
  * until all clocks ticked n times, where n is the respective extension.
  * If the object is part of a region, the region is refreshed instead.
  */
-void scm_refresh_with_clock(void *ptr, unsigned int extension, const unsigned long clock);
+void scm_refresh_with_clock(void *ptr, unsigned int extension, const unsigned int clock);
 
 /**
  * scm_refresh() adds extension time units to the expiration time of
@@ -206,7 +206,7 @@ void scm_global_refresh(void *ptr, unsigned int extension);
  * If a region is refreshed with multiple clocks it lives
  * until all clocks ticked n times, where n is the respective extension.
  */
-void scm_refresh_region_with_clock(const int region_id, unsigned int extension, const unsigned long clock);
+void scm_refresh_region_with_clock(const int region_id, unsigned int extension, const unsigned int clock);
 
 /**
  * scm_refresh_region() adds extension time units to the expiration time of
@@ -226,7 +226,7 @@ void scm_global_refresh_region(const int region_id, unsigned int extension);
 /**
  * scm_tick_clock() advances the time of the given thread-local clock
  */
-void scm_tick_clock(const unsigned long clock);
+void scm_tick_clock(const unsigned int clock);
 
 /**
  * scm_tick() advances the local time of the calling thread
