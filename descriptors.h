@@ -21,7 +21,7 @@
 
 #ifndef DESCRIPTORS_PER_PAGE
 #define DESCRIPTORS_PER_PAGE \
-        ((SCM_DESCRIPTOR_PAGE_SIZE - 2 * sizeof(void*))/sizeof(void*))
+    ((SCM_DESCRIPTOR_PAGE_SIZE - 2 * sizeof(void*))/sizeof(void*))
 #endif
 
 /*
@@ -97,12 +97,8 @@ struct descriptor_buffer {
 };
 
 // The max. amount of memory that fits into a region page
-#ifndef SCM_MEMINFO
-    #define SCM_REGION_PAGE_PAYLOAD_SIZE (SCM_REGION_PAGE_SIZE - sizeof(void*))
-#else
-    #define SCM_REGION_PAGE_PAYLOAD_SIZE \
-       (SCM_REGION_PAGE_SIZE - sizeof(void*) - sizeof(unsigned long))
-#endif
+#define SCM_REGION_PAGE_PAYLOAD_SIZE \
+    (SCM_REGION_PAGE_SIZE - sizeof(void*))
 
 /**
  * region_page contains a pointer to the next region_page,

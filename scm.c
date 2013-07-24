@@ -730,11 +730,6 @@ void* scm_malloc_in_region(size_t size, const int region_index) {
 
         new_obj = (object_header_t*) page->memory;
         region->next_free_address = page->memory + needed_space;
-
-#ifdef SCM_MEMINFO
-        region->lastPage->used_memory += needed_space;
-        inc_nub_regions(needed_space);
-#endif
     }
 
     new_obj->dc_or_region_id = region_index | HB_MASK;
