@@ -81,9 +81,9 @@ void print_memory_consumption() {
 
     // struct mallinfo info = mallinfo();
 
-    printf("memusage:\t%lu\t%ld\t%ld\t%ld\n", usec - start_time, alloc_mem - freed_mem, pooled_mem, alloc_mem - pooled_mem);
+    printf("memory usage:\t%lu\t%ld\t%ld\t%ld\n", usec - start_time, alloc_mem - freed_mem, pooled_mem, alloc_mem - pooled_mem);
 
-    printf("memoverhead:\t%lu\t%lu\n", usec - start_time, mem_overhead);
+    printf("memory overhead:\t%lu\t%lu\n", usec - start_time, mem_overhead);
 
     // printf("mallinfo:\t%lu\t%d\n", usec - start_time, info.uordblks);
 }

@@ -7,6 +7,7 @@ void *pointer2 = NULL;
 void use_some_memory() {
 	//this pointer is only used within this scope
 	void *pointer1 = scm_malloc(10);
+
 	//let pointer1 expire after this round
 	scm_refresh(pointer1, 0);
 	
@@ -17,6 +18,7 @@ void use_some_memory() {
 	
 	//create new memory for pointer2
 	pointer2 = scm_malloc(20);
+	
 	//refresh pointer2 to be vaid in the next round
 	scm_refresh(pointer2, 1);
 }
@@ -35,5 +37,6 @@ int main(int argc, char** argv) {
 		//...
 	}
 	
+	printf("prog1: success!\n");
 	return 0;
 }
