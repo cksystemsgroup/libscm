@@ -22,7 +22,10 @@ void use_some_memory() {
 }
 
 int main(int argc, char** argv) {
-	
+
+	const int region_index = scm_create_region();
+	void* ptr = scm_malloc_in_region(10, region_index);
+
 	int i;
 	
 	for (i = 0; i < 10; i++) {
