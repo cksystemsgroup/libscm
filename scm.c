@@ -560,7 +560,7 @@ static region_page_t* init_region_page(region_t* region) {
         prevLastPage->nextPage = new_page;
     }
 
-    region->last_address_in_last_page = &new_page->memory + SCM_REGION_PAGE_PAYLOAD_SIZE - 1;
+    region->last_address_in_last_page = new_page->memory + SCM_REGION_PAGE_PAYLOAD_SIZE;
     region->lastPage = new_page;
     region->number_of_region_pages++;
 
