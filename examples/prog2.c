@@ -17,9 +17,8 @@ void use_some_memory() {
 
 	int i=0;
 	for(i=0; i<LOOPRUNS; i++) {
-		//void* ptr = scm_malloc_in_region(MEMSIZE1, region1);
-		void* ptr = scm_malloc(MEMSIZE1);
-		scm_refresh(ptr, 0);
+		void* ptr = scm_malloc_in_region(MEMSIZE1, region1);
+		//scm_refresh(ptr, 0);
 	}
 	printf("|-------------------------------------------|\n");
 }
@@ -38,9 +37,8 @@ int main(int argc, char** argv) {
 		if(i % 2 == 0) {
 			printf("|-------------- clock2-malloc --------------|\n");
 			for(j=0; j<LOOPRUNS; j++) {
-				//void* ptr = scm_malloc_in_region(MEMSIZE2, region2);
-				void* ptr = scm_malloc(MEMSIZE2);
-				scm_refresh(ptr, 0);
+				void* ptr = scm_malloc_in_region(MEMSIZE2, region2);
+				//scm_refresh(ptr, 0);
 			}
 			printf("|-------------------------------------------|\n");
 		}
