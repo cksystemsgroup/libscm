@@ -8,9 +8,9 @@ WRAP = -Wl,--wrap=malloc -Wl,--wrap=free -Wl,--wrap=calloc -Wl,--wrap=realloc -W
 # for compile time options uncomment the corresponding line
 # see libscm.h for a description of the options
 
-# SCM:=$(SCM) -DSCM_DEBUG
-# SCM:=$(SCM) -DSCM_DEBUG_THREADS
-# SCM:=$(SCM) -DSCM_CHECK_CONDITIONS
+SCM:=$(SCM) -DSCM_DEBUG
+SCM:=$(SCM) -DSCM_DEBUG_THREADS
+SCM:=$(SCM) -DSCM_CHECK_CONDITIONS
 # SCM:=$(SCM) -DSCM_RECORD_MEMORY_USAGE
 # SCM:=$(SCM) -DSCM_PRINT_BLOCKING
 # SCM:=$(SCM) -DSCM_MAKE_MICROBENCHMARKS
