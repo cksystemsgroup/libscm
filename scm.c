@@ -560,8 +560,7 @@ static region_page_t* init_region_page(region_t* region) {
         prevLastPage->nextPage = new_page;
     }
 
-    region->last_address_in_last_page =
-            &new_page->memory + SCM_REGION_PAGE_PAYLOAD_SIZE;
+    region->last_address_in_last_page = &new_page->memory + SCM_REGION_PAGE_PAYLOAD_SIZE - 1;
     region->lastPage = new_page;
     region->number_of_region_pages++;
 
@@ -587,33 +586,47 @@ static region_page_t* init_region_page(region_t* region) {
  * a region_page is created and initialized.
  */
 const int scm_create_region() {
+    if (SCM_MAX_REGIONS < 1) {
+#ifdef SCM_DEBUG
+        printf("libscm was built without region support. Set SCM_MAX_REGIONS to > 0 to use regions.\n");
+#endif
+        return(-1);
+    }
+
     create_descriptor_root();
 
-    region_t* region = NULL;
-    int start = descriptor_root->next_reg_index % SCM_MAX_REGIONS;
-    int i =  start;
-    region = &(descriptor_root->regions[i]);
+    int start = descriptor_root->next_reg_index;
+    int i = start;
+    
+    region_t* region = &descriptor_root->regions[i];
+    
     while (region->firstPage != NULL) {
         // if the mutator calls scm_create_region() without refreshing
         // it, dc will still be 0. So if age != current_time
         // and dc == 0, we can reuse the region.
-        if (region->age != descriptor_root->current_time
-                && region->dc == 0) {
+        if (region->age != descriptor_root->current_time && region->dc == 0) {
             region->age = descriptor_root->current_time;
-            descriptor_root->next_reg_index = i;
+
+            descriptor_root->next_reg_index = (i + 1) % SCM_MAX_REGIONS;
+
             return (const int) i;
         }
+
         i = (i + 1) % SCM_MAX_REGIONS;
+   
         if (i == start) {
 #ifdef SCM_DEBUG
             printf("Region contingency exceeded.\n");
 #endif
             return -1;
         }
+   
         region = &descriptor_root->regions[i];
     }
+    
     descriptor_root->next_reg_index = (i + 1) % SCM_MAX_REGIONS;
     region->age = descriptor_root->current_time;
+    
     region_page_t* page = init_region_page(region);
     region->firstPage = page;
     region->next_free_address = page->memory;

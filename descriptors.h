@@ -98,7 +98,7 @@ struct descriptor_buffer {
 
 // The max. amount of memory that fits into a region page
 #define SCM_REGION_PAGE_PAYLOAD_SIZE \
-    (SCM_REGION_PAGE_SIZE - sizeof(void*))
+    (SCM_REGION_PAGE_SIZE - sizeof(region_page_t*))
 
 /**
  * region_page contains a pointer to the next region_page,
