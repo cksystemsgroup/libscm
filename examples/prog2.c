@@ -28,7 +28,7 @@ int main(int argc, char** argv) {
 	int i, j;
 
 	region1 = scm_create_region();
-	const int region2 = scm_create_region();
+	//const int region2 = scm_create_region();
 
 	for (i = 0; i < 10; i++) {
 		//...
