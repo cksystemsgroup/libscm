@@ -42,13 +42,13 @@ int main(int argc, char** argv) {
 			}
 			printf("|-------------------------------------------|\n");
 		}
-		scm_tick();
+		//scm_tick();
 		//...
 	}
 
 	printf("------------- deallocation: --------------\n");
 	for(i=0; i<60; i++) {
-		scm_tick();
+		//scm_tick();
 	}
 
 	printf("prog2: success!\n");
