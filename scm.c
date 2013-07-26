@@ -13,7 +13,7 @@
  */
 void *__wrap_malloc(size_t size) {
 
-    object_header_t *object =
+    object_header_t* object =
         (object_header_t*) (__real_malloc(size + sizeof(object_header_t)));
 
     if (!object) {
@@ -57,7 +57,7 @@ void *__wrap_realloc(void *ptr, size_t size) {
 
     if (ptr == NULL) return __wrap_malloc_internal(size);
     //else: create new object
-    object_header_t *new_object =
+    object_header_t* new_object =
         (object_header_t*) __real_malloc(size + sizeof(object_header_t));
 
     if (!new_object) {
@@ -85,7 +85,7 @@ void *__wrap_realloc(void *ptr, size_t size) {
         lesser_object_size = old_object_size;
     }
 
-    object_header_t *old_object = OBJECT_HEADER(ptr);
+    object_header_t* old_object = OBJECT_HEADER(ptr);
     //copy payload bytes 0..(lesser_size-1) from the old object to the new one
     memcpy(PAYLOAD_OFFSET(new_object),
            PAYLOAD_OFFSET(old_object),
@@ -117,7 +117,7 @@ void __wrap_free(void *ptr) {
 
     if (ptr == NULL) return;
 
-    object_header_t *object = OBJECT_HEADER(ptr);
+    object_header_t* object = OBJECT_HEADER(ptr);
 
     if (object->dc_or_region_id == 0) {
 #ifdef SCM_RECORD_MEMORY_USAGE
@@ -146,7 +146,7 @@ extern __typeof__(__wrap_free) __wrap_free_internal
  */
 size_t __wrap_malloc_usable_size(void *ptr) {
 
-    object_header_t *object = OBJECT_HEADER(ptr);
+    object_header_t* object = OBJECT_HEADER(ptr);
 
     return __real_malloc_usable_size(object) - sizeof(object_header_t);
 }
@@ -828,7 +828,7 @@ void scm_refresh_with_clock(void *ptr, unsigned int extension, const unsigned in
         return;
     }
 
-    object_header_t *object = OBJECT_HEADER(ptr);
+    object_header_t* object = OBJECT_HEADER(ptr);
 
     // is the object allocated into a region?
     if (object->dc_or_region_id < 0) {
@@ -911,7 +911,7 @@ void scm_global_refresh(void *ptr, unsigned int extension) {
         return;
     }
 
-    object_header_t *object = OBJECT_HEADER(ptr);
+    object_header_t* object = OBJECT_HEADER(ptr);
 
     if (object->dc_or_region_id < 0) {
         int region_id = object->dc_or_region_id & ~HB_MASK;
