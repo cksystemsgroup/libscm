@@ -681,8 +681,7 @@ inline void *scm_malloc(size_t size) {
  * a word to effectively use cache lines.
  *
  * If the requested amount of memory is bigger than the
- * max region_page payload size, scm_malloc_in_region() returns NULL
- * and prints an error message.
+ * max region_page payload size, scm_malloc_in_region() returns NULL.
  * If the region does not contain at least one
  * region_page it was not correctly initialized and
  * scm_malloc_in_region() returns a NULL pointer.
