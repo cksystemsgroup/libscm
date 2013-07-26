@@ -27,6 +27,8 @@ int main(int argc, char** argv) {
 
 	int i, j;
 
+	setbuf(stdout, NULL);
+
 	region1 = scm_create_region();
 	//const int region2 = scm_create_region();
 
