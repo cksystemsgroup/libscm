@@ -38,7 +38,7 @@ int main(int argc, char** argv) {
 			printf("|-------------- clock2-malloc --------------|\n");
 			for(j=0; j<LOOPRUNS; j++) {
 				void* ptr = scm_malloc_in_region(MEMSIZE2, region2);
-				scm_refresh(ptr, 0);
+				//scm_refresh(ptr, 0);
 			}
 			printf("|-------------------------------------------|\n");
 		}
