@@ -30,7 +30,7 @@ int main(int argc, char** argv) {
 	setbuf(stdout, NULL);
 
 	region1 = scm_create_region();
-	//const int region2 = scm_create_region();
+	const int region2 = scm_create_region();
 
 	for (i = 0; i < 10; i++) {
 		//...
@@ -39,7 +39,7 @@ int main(int argc, char** argv) {
 		if(i % 2 == 0) {
 			printf("|-------------- clock2-malloc --------------|\n");
 			for(j=0; j<LOOPRUNS; j++) {
-				//void* ptr = scm_malloc_in_region(MEMSIZE2, region2);
+				void* ptr = scm_malloc_in_region(MEMSIZE2, region2);
 				//scm_refresh(ptr, 0);
 			}
 			printf("|-------------------------------------------|\n");
