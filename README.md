@@ -61,6 +61,7 @@ How to build libscm
 * There is also a port of sh6bench for benchmarking libscm
   in bench/sh6bench, see the run-bench.sh script.
 
+## Building [![Build Status](https://drone.io/github.com/cksystemsgroup/libscm/status.png)](https://drone.io/github.com/cksystemsgroup/libscm/latest)
 
 Additional Information
 -----------------------
