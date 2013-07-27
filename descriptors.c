@@ -313,7 +313,7 @@ static void recycle_region(region_t* region) {
 
         memset(firstPage, '\0', SCM_REGION_PAGE_SIZE);
         region->last_address_in_last_page =
-                &firstPage->memory + SCM_REGION_PAGE_PAYLOAD_SIZE;
+                firstPage->memory + SCM_REGION_PAGE_PAYLOAD_SIZE;
 
         // nothing to put into the pool
         if (legacy_pages == NULL) {
@@ -477,8 +477,8 @@ static void recycle_region(region_t* region) {
     region->number_of_region_pages = 1;
     region->lastPage = region->firstPage;
     region->last_address_in_last_page =
-            &region->lastPage->memory + SCM_REGION_PAGE_PAYLOAD_SIZE;
-    region->next_free_address = &region->lastPage->memory;
+            region->lastPage->memory + SCM_REGION_PAGE_PAYLOAD_SIZE;
+    region->next_free_address = region->lastPage->memory;
 
 // check post-conditions
 #ifdef SCM_CHECK_CONDITIONS
@@ -538,7 +538,7 @@ int expire_region_descriptor_if_exists(expired_descriptor_page_list_t *list) {
     region_t* expired_region = (region_t*) get_expired_memory(list);
 
     if (expired_region != NULL) {
-        if (atomic_int_dec_and_test((volatile int*) & expired_region->dc)) {
+        if (atomic_int_dec_and_test((volatile int*) &expired_region->dc)) {
 
 #ifdef SCM_DEBUG
             printf("Region FREE(%lx).\n", (unsigned long) expired_region);
