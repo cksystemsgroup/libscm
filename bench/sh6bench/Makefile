@@ -1,4 +1,3 @@
-BENCH_OPTION:=$(BENCH_OPTION)
 #BENCH_OPTION:=$(BENCH_OPTION) -DDEBUG
 #BENCH_OPTION:=$(BENCH_OPTION) -DPRINTLATENCY
 #BENCH_OPTION:=$(BENCH_OPTION) -DPRINTTHROUGHPUT
@@ -61,7 +60,7 @@ sh6bench_str_leak: ../../dist/libscm.so $(OBJECTDIR)/sh6bench_str_leak.o
 	
 sh6bench_str: ../../dist/libscm.so $(OBJECTDIR)/sh6bench_str.o
 	mkdir -p $(DISTDIR)
-	$(CC) $(CFLAGS) $(OBJECTDIR)/sh6bench_str.o -L../../dist -lscm -o $(DISTDIR)/sh6benchSTR
+	$(CC) $(CFLAGS) $(OBJECTDIR)/sh6bench_str.o -L../../dist -lscm -lpthread -o $(DISTDIR)/sh6benchSTR
 	
 sh6bench_stm_leak: ../../dist/libscm.so $(OBJECTDIR)/sh6bench_stm_leak.o
 	mkdir -p $(DISTDIR)
