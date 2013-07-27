@@ -110,7 +110,7 @@ typedef TID ThreadID;
 
 #ifdef PRINTLATENCY
 	#define COLLECTLATENCY latency = rdtsc()
-	#define SHOWLATENCY(msg, thread_id)  fprintf(fout, "latency %s %ld %ld %ld\n", msg, thread_id, latency, rdtsc()-latency)
+	#define SHOWLATENCY(msg, thread_id)  fprintf(fout, "latency %s %ld %ld %d\n", msg, thread_id, latency, rdtsc()-latency)
 #else
 	#define COLLECTLATENCY 0
 	#define SHOWLATENCY(msg, thread_id) 0
@@ -746,7 +746,7 @@ void doBench(void *arg)
 	}
 #endif
 #ifdef PRINTTHROUGHPUT
-	fprintf(fout, "Number of objects for thread %d: %u \n", pthread_self(), num_objects);
+	fprintf(fout, "Number of objects for thread %p: %u \n", (void*) pthread_self(), num_objects);
 #endif
 	free(memory);
 	UPDATENETMEM(-(ulCallCount*sizeof(void*)));

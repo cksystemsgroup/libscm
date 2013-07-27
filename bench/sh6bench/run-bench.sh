@@ -54,17 +54,17 @@ do
 					echo "AVG total execution time: $avg";
 					echo "---" >> bench_results/throughput_${cas}_${a}_${c}.dat;
 					echo "$avg" >> bench_results/throughput_${cas}_${a}_${c}.dat;
-					mail -s "Benchmark sh6bench${a} [throughput, ${cas}, ${c}] finished" steffueue@gmail.com <bench_results/throughput_${cas}_${a}_${c}.dat;
+					//mail -s "Benchmark sh6bench${a} [throughput, ${cas}, ${c}] finished" steffueue@gmail.com <bench_results/throughput_${cas}_${a}_${c}.dat;
 					#scp bench_results/throughput_${cas}_${a}_${c}.dat stexx@80.218.210.143:~/bench_results_new/throughput/${cas} 
 				else
 					echo "Build of sh6bench${a} (throughput) failed";
-					mail -s "Build of sh6bench${a} (throughput) failed" steffueue@gmail.com <buildlog.txt
+					//mail -s "Build of sh6bench${a} (throughput) failed" steffueue@gmail.com <buildlog.txt
 					exit
 				fi
 			done
 		else
 			echo "Build of libscm.so failed";
-			mail -s "Build of libscm.so failed" steffueue@gmail.com <buildlog.txt
+			//mail -s "Build of libscm.so failed" steffueue@gmail.com <buildlog.txt
 			exit
 		fi
 	done
@@ -89,9 +89,9 @@ do
 				if test -f dist/sh6bench${a}; then
 					echo "Started measurement of $a latency. sh6bench call count is $c";
 					dist/sh6bench$a | sed -n 's/latency //p' >bench_results/latency_${cas}_${a}_${c}.dat;
-					tail -n 5 bench_results/latency_${cas}_${a}_${c}.dat | mail -s "Benchmarks sh6bench${a} [latency, ${cas}, ${c}] finished" steffueue@gmail.com;
+					//tail -n 5 bench_results/latency_${cas}_${a}_${c}.dat | mail -s "Benchmarks sh6bench${a} [latency, ${cas}, ${c}] finished" steffueue@gmail.com;
 				else
-					mail -s "Build of sh6bench${a} (printlatency) failed" steffueue@gmail.com <buildlog.txt
+					//mail -s "Build of sh6bench${a} (printlatency) failed" steffueue@gmail.com <buildlog.txt
 					exit
 				fi
 			done
@@ -165,7 +165,7 @@ do
 
 		else
 			echo "Build of libscm.so failed";
-			mail -s "Build of libscm.so failed" steffueue@gmail.com <buildlog.txt
+			//mail -s "Build of libscm.so failed" steffueue@gmail.com <buildlog.txt
 			exit
 		fi
 		echo "";
@@ -185,15 +185,15 @@ do
 				if test -f dist/sh6bench${a}; then
 					echo "Started memory measurement for $a. sh6bench call count is $c";
 				dist/sh6bench$a 2>&1 | gzip >bench_results/memory_${cas}_${a}_${c}.gz;
-				gzip -dc bench_results/memory_${cas}_${a}_${c}.gz | tail -n 20 | mail -s "Benchmarks sh6bench${a} [memory, ${cas}, ${c}] finished" steffueue@gmail.com;
+				//gzip -dc bench_results/memory_${cas}_${a}_${c}.gz | tail -n 20 | mail -s "Benchmarks sh6bench${a} [memory, ${cas}, ${c}] finished" steffueue@gmail.com;
 				#scp bench_results/memory_${cas}_${a}_${c}.gz stexx@80.218.210.143:~/bench_results_new/memory/${cas} && rm bench_results/memory_${cas}_${a}_${c}.gz
 			else
-				mail -s "Build of sh6bench${a} (printmeminfo) failed" steffueue@gmail.com <buildlog.txt
+				//mail -s "Build of sh6bench${a} (printmeminfo) failed" steffueue@gmail.com <buildlog.txt
 				exit
 			fi
 			done
 		else
-			mail -s "Build of libscm.so failed" steffueue@gmail.com <buildlog.txt
+			//mail -s "Build of libscm.so failed" steffueue@gmail.com <buildlog.txt
 			exit
 		fi
 	done
