@@ -110,7 +110,7 @@ typedef TID ThreadID;
 
 #ifdef PRINTLATENCY
 	#define COLLECTLATENCY latency = rdtsc()
-	#define SHOWLATENCY(msg, thread_id)  fprintf(fout, "latency %s %ld %ld %d\n", msg, thread_id, latency, rdtsc()-latency)
+	#define SHOWLATENCY(msg, thread_id)  fprintf(fout, "latency %s %d %d %d\n", msg, thread_id, latency, rdtsc()-latency)
 #else
 	#define COLLECTLATENCY 0
 	#define SHOWLATENCY(msg, thread_id) 0
