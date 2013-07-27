@@ -126,15 +126,15 @@ typedef TID ThreadID;
 #undef free
 #endif
 
-/* To test STM we include stm.h */
+/* To test STM we include libscm.h */
 #ifdef STR_MALLOC
-#include "stm.h"
+#include "libscm.h"
 #endif
 #ifdef STM_MALLOC
-#include "stm.h"
+#include "libscm.h"
 #endif
 #ifdef STRMC_MALLOC
-#include "stm.h"
+#include "libscm.h"
 #endif
 /*******************************/
 

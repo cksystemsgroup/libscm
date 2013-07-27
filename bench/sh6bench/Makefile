@@ -33,27 +33,27 @@ $(OBJECTDIR)/sh6bench.o: sh6bench.c
 
 $(OBJECTDIR)/sh6bench_str_leak.o: sh6bench.c
 	mkdir -p $(OBJECTDIR)
-	$(CC) -c $(CFLAGS) -I../../ -DSTR_MALLOC -o $(OBJECTDIR)/sh6bench_str_leak.o sh6bench.c
+	$(CC) -c $(CFLAGS) -I../../dist -DSTR_MALLOC -o $(OBJECTDIR)/sh6bench_str_leak.o sh6bench.c
 
 $(OBJECTDIR)/sh6bench_str.o: sh6bench.c
 	mkdir -p $(OBJECTDIR)
-	$(CC) -c $(CFLAGS) -I../../ -DWITHOUT_LEAK -DSTR_MALLOC -o $(OBJECTDIR)/sh6bench_str.o sh6bench.c
+	$(CC) -c $(CFLAGS) -I../../dist -DWITHOUT_LEAK -DSTR_MALLOC -o $(OBJECTDIR)/sh6bench_str.o sh6bench.c
 
 $(OBJECTDIR)/sh6bench_stm_leak.o: sh6bench.c
 	mkdir -p $(OBJECTDIR)
-	$(CC) -c $(CFLAGS) -I../../ -DSTM_MALLOC -o $(OBJECTDIR)/sh6bench_stm_leak.o sh6bench.c
+	$(CC) -c $(CFLAGS) -I../../dist -DSTM_MALLOC -o $(OBJECTDIR)/sh6bench_stm_leak.o sh6bench.c
 
 $(OBJECTDIR)/sh6bench_stm.o: sh6bench.c
 	mkdir -p $(OBJECTDIR)
-	$(CC) -c $(CFLAGS) -I../../ -DWITHOUT_LEAK -DSTM_MALLOC -o $(OBJECTDIR)/sh6bench_stm.o sh6bench.c
+	$(CC) -c $(CFLAGS) -I../../dist -DWITHOUT_LEAK -DSTM_MALLOC -o $(OBJECTDIR)/sh6bench_stm.o sh6bench.c
 
 $(OBJECTDIR)/sh6bench_strmc_leak.o: sh6bench.c
 	mkdir -p $(OBJECTDIR)
-	$(CC) -c $(CFLAGS) -I../../  -DSTRMC_MALLOC -o $(OBJECTDIR)/sh6bench_strmc_leak.o sh6bench.c
+	$(CC) -c $(CFLAGS) -I../../dist  -DSTRMC_MALLOC -o $(OBJECTDIR)/sh6bench_strmc_leak.o sh6bench.c
 
 $(OBJECTDIR)/sh6bench_strmc.o: sh6bench.c
 	mkdir -p $(OBJECTDIR)
-	$(CC) -c $(CFLAGS) -I../../  -DWITHOUT_LEAK -DSTRMC_MALLOC -o $(OBJECTDIR)/sh6bench_strmc.o sh6bench.c
+	$(CC) -c $(CFLAGS) -I../../dist  -DWITHOUT_LEAK -DSTRMC_MALLOC -o $(OBJECTDIR)/sh6bench_strmc.o sh6bench.c
 
 sh6bench_str_leak: ../../dist/libscm.so $(OBJECTDIR)/sh6bench_str_leak.o
 	mkdir -p $(DISTDIR)
@@ -78,6 +78,6 @@ sh6bench_strmc_leak: ../../dist/libscm.so $(OBJECTDIR)/sh6bench_strmc_leak.o
 sh6bench_strmc: ../../dist/libscm.so $(OBJECTDIR)/sh6bench_strmc.o
 	mkdir -p $(DISTDIR)
 	$(CC) $(CFLAGS) -L../../dist -lscm -o $(DISTDIR)/sh6benchSTRMC $(OBJECTDIR)/sh6bench_strmc.o
-	
+
 clean:
 	rm -rf $(OBJECTDIR) $(DISTDIR)
