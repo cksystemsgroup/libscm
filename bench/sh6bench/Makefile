@@ -61,7 +61,7 @@ sh6bench_str_leak: ../../dist/libscm.so $(OBJECTDIR)/sh6bench_str_leak.o
 	
 sh6bench_str: ../../dist/libscm.so $(OBJECTDIR)/sh6bench_str.o
 	mkdir -p $(DISTDIR)
-	$(CC) $(CFLAGS) -L../../dist -lscm $(OBJECTDIR)/sh6bench_str.o -o $(DISTDIR)/sh6benchSTR
+	$(CC) $(CFLAGS) $(OBJECTDIR)/sh6bench_str.o -L../../dist -lscm -o $(DISTDIR)/sh6benchSTR
 	
 sh6bench_stm_leak: ../../dist/libscm.so $(OBJECTDIR)/sh6bench_stm_leak.o
 	mkdir -p $(DISTDIR)
