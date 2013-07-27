@@ -746,7 +746,7 @@ void doBench(void *arg)
 	}
 #endif
 #ifdef PRINTTHROUGHPUT
-	fprintf(fout, "Number of objects for thread %p: %u \n", (void*) pthread_self(), num_objects);
+	fprintf(fout, "Number of objects for thread %p: %u \n", pthread_self(), num_objects);
 #endif
 	free(memory);
 	UPDATENETMEM(-(ulCallCount*sizeof(void*)));
