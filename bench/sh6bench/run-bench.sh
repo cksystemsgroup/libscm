@@ -43,6 +43,7 @@ do
 					sum=0
 					for ((i=1;i<=$LOOPRUN;i++))
 					do
+						./dist/sh6bench$a;
 						cputime=$(./dist/sh6bench$a | sed -n 's/throughput //p');
 						sum=$(( $sum + $cputime ));
 						#echo "cputime: $cputime"
