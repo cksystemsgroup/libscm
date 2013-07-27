@@ -56,7 +56,7 @@ $(OBJECTDIR)/sh6bench_strmc.o: sh6bench.c
 
 sh6bench_str_leak: ../../dist/libscm.so $(OBJECTDIR)/sh6bench_str_leak.o
 	mkdir -p $(DISTDIR)
-	$(CC) $(CFLAGS) -L../../dist -lscm -o $(DISTDIR)/sh6benchSTR_LEAK $(OBJECTDIR)/sh6bench_str_leak.o
+	$(CC) $(CFLAGS) $(OBJECTDIR)/sh6bench_str_leak.o -L../../dist -lscm -lpthread -o $(DISTDIR)/sh6benchSTR_LEAK
 	
 sh6bench_str: ../../dist/libscm.so $(OBJECTDIR)/sh6bench_str.o
 	mkdir -p $(DISTDIR)
@@ -64,19 +64,19 @@ sh6bench_str: ../../dist/libscm.so $(OBJECTDIR)/sh6bench_str.o
 	
 sh6bench_stm_leak: ../../dist/libscm.so $(OBJECTDIR)/sh6bench_stm_leak.o
 	mkdir -p $(DISTDIR)
-	$(CC) $(CFLAGS) -L../../dist -lscm -o $(DISTDIR)/sh6benchSTM_LEAK $(OBJECTDIR)/sh6bench_stm_leak.o
+	$(CC) $(CFLAGS) $(OBJECTDIR)/sh6bench_stm_leak.o -L../../dist -lscm -lpthread -o $(DISTDIR)/sh6benchSTM_LEAK
 	
 sh6bench_stm: ../../dist/libscm.so $(OBJECTDIR)/sh6bench_stm.o
 	mkdir -p $(DISTDIR)
-	$(CC) $(CFLAGS) -L../../dist -lscm -o $(DISTDIR)/sh6benchSTM $(OBJECTDIR)/sh6bench_stm.o
+	$(CC) $(CFLAGS) $(OBJECTDIR)/sh6bench_stm.o -L../../dist -lscm -lpthread -o $(DISTDIR)/sh6benchSTM
 	
 sh6bench_strmc_leak: ../../dist/libscm.so $(OBJECTDIR)/sh6bench_strmc_leak.o
 	mkdir -p $(DISTDIR)
-	$(CC) $(CFLAGS) -L../../dist -lscm -o $(DISTDIR)/sh6benchSTRMC_LEAK $(OBJECTDIR)/sh6bench_strmc_leak.o
+	$(CC) $(CFLAGS) $(OBJECTDIR)/sh6bench_strmc_leak.o -L../../dist -lscm -lpthread -o $(DISTDIR)/sh6benchSTRMC_LEAK
 	
 sh6bench_strmc: ../../dist/libscm.so $(OBJECTDIR)/sh6bench_strmc.o
 	mkdir -p $(DISTDIR)
-	$(CC) $(CFLAGS) -L../../dist -lscm -o $(DISTDIR)/sh6benchSTRMC $(OBJECTDIR)/sh6bench_strmc.o
+	$(CC) $(CFLAGS) $(OBJECTDIR)/sh6bench_strmc.o -L../../dist -lscm -lpthread -o $(DISTDIR)/sh6benchSTRMC
 
 clean:
 	rm -rf $(OBJECTDIR) $(DISTDIR)
