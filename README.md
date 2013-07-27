@@ -43,17 +43,23 @@ used to remove explicit deallocation of some but not necessarily all
 objects.
 
 
+Additional Features
+-------------------
+The latest version also supports regions and multiple clocks.
+
+
 How to build libscm
 --------------------
 * Use a recent version of gcc. libscm is known to work with gcc 4.4.3
-  on Linux x86
-* run make to build the shared library
-* the library (libscm.so) and the public header files reside in the dist 
-  subdirectory
-* take a look at the examples subdirectory (c files and Makefile)
-  to find out how to build a program using libscm.
-* You can run the examples with the provided run-\*.sh scripts that set up the
-  environment.
+  on Linux x86.
+* Run make to build the shared library.
+* The library (libscm.so) and the public header files reside in the dist 
+  subdirectory.
+* Take a look at the examples subdirectory (C files and Makefile)
+  to find out how to build a program using libscm,
+  see also the run-examples.sh script.
+* There is also a port of sh6bench for benchmarking libscm
+  in bench/sh6bench, see the run-bench.sh script.
 
 
 Additional Information
