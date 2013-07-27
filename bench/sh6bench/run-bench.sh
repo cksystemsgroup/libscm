@@ -29,12 +29,12 @@ do
 		echo "";
 		echo "";
 
-		#cd ../../; make clean; make > bench/sh6bench/buildlog.txt ; cd -;
+		cd ../../; make clean; make > bench/sh6bench/buildlog.txt ; cd -;
 		if test -f ../../dist/libscm.so; then
 
-			#make clean
-			#echo "make BENCH_OPTION=\"-DCALL_COUNT='$c' -DPRINTTHROUGHPUT $o\""
-			#make BENCH_OPTION="-DCALL_COUNT='$c' -DPRINTTHROUGHPUT $o" > buildlog.txt
+			make clean
+			echo "make BENCH_OPTION=\"-DCALL_COUNT='$c' -DPRINTTHROUGHPUT $o\""
+			make BENCH_OPTION="-DCALL_COUNT='$c' -DPRINTTHROUGHPUT $o" > buildlog.txt
 			for a in ${ALLOCATOR[@]}
 			do
 				if test -f dist/sh6bench${a}; then
